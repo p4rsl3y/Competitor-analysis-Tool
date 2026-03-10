@@ -1,0 +1,129 @@
+{
+  "columns": [
+    {
+      "format": "tags",
+      "id": 100,
+      "instructions": "Region of company HQ",
+      "name": "Region",
+      "tags": "DACH, Nordics, BeNeLux, Europe, RoW"
+    },
+    {
+      "format": "text",
+      "id": 101,
+      "instructions": "City where the company HQ is located",
+      "name": "HQ",
+      "tags": ""
+    },
+    {
+      "format": "number",
+      "id": 102,
+      "instructions": "size of the company as the closet multiple of 50",
+      "name": "Size",
+      "tags": "<50, 51-200, 201-1000, >1000"
+    },
+    {
+      "format": "tags",
+      "id": 103,
+      "instructions": "Describe the core pricing model relative to the industry.",
+      "name": "Pricing",
+      "tags": "High, Medium, Low"
+    },
+    {
+      "format": "tags",
+      "id": 104,
+      "instructions": "Category of business",
+      "name": "Business Type",
+      "tags": "Enterprise IT & Strategy Giant, High-End Software Engineering House, Pure Data & AI Consultancy, AI SaaS Product, Generalist Dev Agency"
+    },
+    {
+      "format": "tags",
+      "id": 105,
+      "instructions": "Primary industries served.",
+      "name": "Top Verticals",
+      "tags": "CPG, Public, FSI, Utilities, CMT, HR & Professional Services, Life Sciences, Other"
+    },
+    {
+      "format": "text",
+      "id": 106,
+      "instructions": "Website of the company",
+      "name": "Website",
+      "tags": ""
+    }
+  ],
+  "presets": {
+    "ML6": [
+      {
+        "format": "tags",
+        "id": 116,
+        "instructions": "Region of company HQ",
+        "name": "Region",
+        "tags": "DACH, Nordics, BeNeLux, Europe, RoW"
+      },
+      {
+        "format": "text",
+        "id": 117,
+        "instructions": "City where the company HQ is located",
+        "name": "HQ",
+        "tags": ""
+      },
+      {
+        "format": "number",
+        "id": 111,
+        "instructions": "size of the company as the closet multiple of 50",
+        "name": "Size",
+        "tags": "<50, 51-200, 201-1000, >1000"
+      },
+      {
+        "format": "tags",
+        "id": 113,
+        "instructions": "Describe the core pricing model relative to the industry.",
+        "name": "Pricing",
+        "tags": "High, Medium, Low"
+      },
+      {
+        "format": "tags",
+        "id": 114,
+        "instructions": "Category of business",
+        "name": "Business Type",
+        "tags": "Enterprise IT & Strategy Giant, High-End Software Engineering House, Pure Data & AI Consultancy, AI SaaS Product, Generalist Dev Agency"
+      },
+      {
+        "format": "tags",
+        "id": 112,
+        "instructions": "Primary industries served.",
+        "name": "Top Verticals",
+        "tags": "CPG, Public, FSI, Utilities, CMT, HR & Professional Services, Life Sciences, Other"
+      },
+      {
+        "format": "text",
+        "id": 115,
+        "instructions": "Website of the company",
+        "name": "Website",
+        "tags": ""
+      }
+    ],
+    "Standard Overview": [
+      {
+        "format": "tags",
+        "id": 1,
+        "instructions": "Match the closest range.",
+        "name": "Size",
+        "tags": "<50, 51-200, 201-1000, >1000"
+      },
+      {
+        "format": "tags",
+        "id": 2,
+        "instructions": "Primary industries served.",
+        "name": "Top Verticals",
+        "tags": "Finance, Healthcare, Retail, Tech, Edu"
+      },
+      {
+        "format": "text",
+        "id": 3,
+        "instructions": "Describe the core pricing model.",
+        "name": "Pricing",
+        "tags": ""
+      }
+    ]
+  }
+}

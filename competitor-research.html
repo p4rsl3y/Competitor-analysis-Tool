@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Competitor Research Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f6f6f6; color: #111111; font-family: 'Space Grotesk', sans-serif; min-height: 100vh; padding: 40px 24px; }
+  h1 { font-size: clamp(28px, 5vw, 44px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 8px; }
+  .gradient-text { background: #ff1400; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  .header { margin-bottom: 40px; }
+  .label { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .icon { width: 36px; height: 36px; background: #ff1400; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .tag { font-size: 13px; font-weight: 600; color: #ff1400; letter-spacing: 0.12em; text-transform: uppercase; }
+  .subtitle { color: #555; font-size: 15px; }
+
+  /* Settings Section */
+  .settings-section { background: #fff; border: 1px solid #e8e8e8; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: flex; flex-direction: column; gap: 16px; }
+  .settings-row { display: flex; gap: 24px; flex-wrap: wrap; }
+  .provider-select-wrap { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+  .provider-label { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.08em; }
+  
+  /* Inputs & Selects */
+  input[type="text"] { flex: 1; background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 14px 18px; color: #111; font-size: 15px; font-family: 'Space Grotesk', sans-serif; transition: border-color 0.2s; }
+  input[type="text"]:focus { outline: none; border-color: #ff1400; }
+  input::placeholder { color: #999; }
+  select { background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 8px; padding: 10px 14px; color: #111; font-size: 14px; font-family: 'Space Grotesk', sans-serif; cursor: pointer; transition: border-color 0.2s; min-width: 160px; }
+  select:focus { outline: none; border-color: #ff1400; }
+
+  /* Column Builder & Presets */
+  .col-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .preset-controls { display: flex; gap: 8px; align-items: center; }
+  .preset-controls select { padding: 6px 10px; font-size: 12px; min-width: 140px; }
+  .btn-preset { background: #f6f6f6; border: 1px solid #e8e8e8; border-radius: 6px; padding: 6px 12px; color: #111; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Space Grotesk', sans-serif; }
+  .btn-preset:hover { border-color: #ff1400; color: #ff1400; background: #fffaf9; }
+  
+  .col-builder-container { display: flex; flex-direction: column; gap: 10px; }
+  .col-card { display: grid; grid-template-columns: 20px 1fr 38px; gap: 10px; align-items: start; background: #fcfcfc; border: 1px solid #e8e8e8; padding: 12px; border-radius: 10px; flex-wrap: wrap; }
+  .col-card input[type="text"] { padding: 10px 14px; font-size: 13px; border-radius: 6px; }
+  .col-card select { padding: 10px 12px; font-size: 13px; border-radius: 6px; }
+  .col-main-content { display: flex; flex-direction: column; gap: 8px; }
+  .col-inputs { display: flex; gap: 10px; width: 100%; }
+  .tags-input-wrap { display: inline-flex; width: fit-content; min-width: 160px; max-width: 100%; }
+  .tags-input-wrap input { width: 100%; }
+  .btn-icon { background: #fee2e2; color: #cc1000; border: none; border-radius: 6px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; transition: all 0.2s; flex-shrink: 0; }
+  .btn-icon:hover { background: #fca5a5; }
+  .btn-add { background: #f6f6f6; border: 1px dashed #ccc; border-radius: 10px; padding: 10px; color: #555; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Space Grotesk', sans-serif; }
+  .btn-add:hover { border-color: #ff1400; color: #ff1400; background: #fffaf9; }
+
+  /* Search row */
+  .search-row { display: flex; gap: 10px; margin-bottom: 10px; }
+  #countSelect { min-width: 140px; background: #fff; border-radius: 10px; }
+  button.search-btn-main { background: #ff1400; border: none; border-radius: 10px; padding: 14px 24px; color: #fff; font-weight: 600; font-size: 14px; cursor: pointer; white-space: nowrap; transition: all 0.2s; font-family: 'Space Grotesk', sans-serif; flex-shrink: 0; }
+  button.search-btn-main:hover { background: #cc1000; transform: translateY(-1px); }
+  button.search-btn-main:disabled { background: #aaa; cursor: not-allowed; transform: none; opacity: 0.6; }
+
+  /* Advanced prompt */
+  .advanced-toggle { font-size: 12px; color: #999; cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 14px; transition: color 0.2s; }
+  .advanced-toggle:hover { color: #ff1400; }
+  .advanced-section { background: #fff; border: 1px solid #e8e8e8; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .advanced-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .advanced-title { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.08em; }
+  .reset-btn { font-size: 11px; color: #aaa; background: none; border: none; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: color 0.15s; }
+  .reset-btn:hover { color: #ff1400; }
+  textarea { width: 100%; background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 8px; padding: 12px 14px; color: #111; font-size: 13px; font-family: 'Space Grotesk', sans-serif; resize: vertical; min-height: 110px; transition: border-color 0.2s; line-height: 1.5; }
+  textarea:focus { outline: none; border-color: #ff1400; }
+  .advanced-note { font-size: 11px; color: #bbb; margin-top: 6px; line-height: 1.5; }
+
+  /* Results header & Table */
+  .results-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .results-company { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+  .results-sub { display: flex; gap: 8px; align-items: center; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; background: #ffe5e2; color: #ff1400; border: 1px solid #ffb3aa; }
+  .count { color: #666; font-size: 13px; }
+  .summary-text { color: #555; font-size: 13px; line-height: 1.6; margin-bottom: 16px; background: #fff; border: 1px solid #e8e8e8; border-left: 3px solid #ff1400; border-radius: 8px; padding: 12px 16px; }
+  .export-btn { background: #111; border: none; border-radius: 8px; padding: 9px 18px; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: all 0.2s; white-space: nowrap; }
+  .export-btn:hover { background: #333; transform: translateY(-1px); }
+  .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid #e8e8e8; background: #fff; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: #f6f6f6; padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid #e8e8e8; white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.15s; }
+  tbody tr:hover { background: #fafafa; }
+  td { padding: 12px 14px; vertical-align: top; }
+  .td-num { color: #ccc; font-size: 12px; font-weight: 600; width: 32px; }
+  .td-name { font-weight: 700; font-size: 14px; white-space: nowrap; }
+  .chip { display: inline-block; background: #f0f0f0; border: 1px solid #e0e0e0; border-radius: 6px; padding: 2px 8px; font-size: 12px; margin: 2px; white-space: nowrap; }
+  
+  /* Loading & Status */
+  .loading { padding: 32px 0; }
+  .loading-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .loading-icon { font-size: 28px; animation: pulse 1.5s ease-in-out infinite; }
+  .loading-text { color: #ff1400; font-weight: 600; font-size: 16px; }
+  .loading-sub { color: #666; font-size: 13px; margin-top: 2px; }
+  .activity-log { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 14px 16px; font-size: 13px; max-height: 200px; overflow-y: auto; }
+  .log-line { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; border-bottom: 1px solid #f4f4f4; color: #555; }
+  .log-line.active { color: #111; font-weight: 500; }
+  .log-line.done { color: #999; }
+  .log-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .log-dot.spinning { background: #ff1400; animation: pulse 0.9s infinite; }
+  .log-dot.complete { background: #16a34a; }
+
+  /* Error / Empty */
+  .error { background: #fff0f0; border: 1px solid #ffb3aa; border-radius: 10px; padding: 16px; color: #cc1000; margin-bottom: 16px; font-size: 14px; }
+  .empty { text-align: center; padding: 80px 0; color: #888; }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-text { font-size: 15px; margin-bottom: 16px; }
+  .hidden { display: none !important; }
+  @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+
+  /* Drag & Drop and Delete Button Styles */
+  .btn-delete { color: #cc1000; border-color: #fca5a5; }
+  .btn-delete:hover { background: #fee2e2; border-color: #cc1000; }
+  .drag-handle { cursor: grab; color: #ccc; font-size: 18px; padding: 10px 0; width: 20px; display: flex; align-items: center; justify-content: center; user-select: none; transition: color 0.2s; }
+  .drag-handle:hover { color: #ff1400; }
+  .col-card.dragging { opacity: 0.5; border: 1px dashed #ff1400; background: #fffaf9; }
+  .col-card.drag-over { border-top: 3px solid #ff1400; padding-top: 7px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="label">
+      <div class="icon">⚡</div>
+      <span class="tag">Competitive Intelligence</span>
+    </div>
+    <h1>Find Your <span class="gradient-text">Competitors</span></h1>
+    <p class="subtitle">Enter any company or product to automatically surface competitive landscape data.</p>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-row">
+      <div class="provider-select-wrap">
+        <span class="provider-label">Provider</span>
+        <select id="providerSelect" onchange="onProviderChange()">
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic</option>
+        </select>
+      </div>
+      <div class="provider-select-wrap">
+        <span class="provider-label">Model</span>
+        <select id="modelSelect"></select>
+      </div>
+    </div>
+    
+    <div style="width: 100%; height: 1px; background: #e8e8e8; margin: 4px 0;"></div>
+    
+    <div class="provider-select-wrap">
+      <div class="col-header-row">
+        <span class="provider-label" style="margin-bottom:0;">Custom Data Columns</span>
+        <div class="preset-controls">
+          <select id="presetSelect" onchange="loadPreset(this.value)">
+            <option value="">-- Load Preset --</option>
+          </select>
+          <button class="btn-preset" onclick="saveCurrentAsPreset()">Save Preset</button>
+          <button class="btn-preset btn-delete hidden" id="deletePresetBtn" onclick="deletePreset()">Delete</button>
+        </div>
+      </div>
+      <div class="col-builder-container" id="colBuilder">
+        </div>
+      <button class="btn-add" onclick="addColumn()">+ Add New Column</button>
+    </div>
+  </div>
+
+<div class="search-row">
+    <input type="text" id="searchInput" placeholder="e.g. Notion, Stripe, Figma, Salesforce..." onkeydown="if(event.key==='Enter') doSearch()" />
+    <div style="display: flex; gap: 8px;">
+      <select id="countSelect" onchange="toggleCustomCount()">
+        <option value="3">3 companies</option>
+        <option value="5" selected>5 companies</option>
+        <option value="8">8 companies</option>
+        <option value="12">12 companies</option>
+        <option value="custom">Custom...</option>
+      </select>
+      <input type="number" id="customCountInput" class="hidden" min="1" max="50" placeholder="#" style="width: 70px; padding: 10px 12px; font-size: 14px; border-radius: 8px; border: 1px solid #e8e8e8; background: #f9f9f9;">
+    </div>
+    <button class="search-btn-main" id="searchBtn" onclick="doSearch()">Research →</button>
+  </div>
+
+  <div class="advanced-toggle" id="advancedToggle" onclick="toggleAdvanced()">▶ Advanced / Custom Prompt</div>
+  <div class="advanced-section hidden" id="advancedSection">
+    <div class="advanced-header">
+      <span class="advanced-title">Custom Research Prompt</span>
+      <button class="reset-btn" onclick="resetPrompt()">Reset to default</button>
+    </div>
+    <textarea id="customPrompt"></textarea>
+    <div class="advanced-note">Use <strong>{count}</strong> and <strong>{query}</strong> as placeholders.</div>
+  </div>
+
+  <div id="loading" class="loading hidden">
+    <div class="loading-header">
+      <div class="loading-icon">🔍</div>
+      <div>
+        <p class="loading-text">Researching competitors...</p>
+        <p class="loading-sub" id="loadingSub">Initialising...</p>
+      </div>
+    </div>
+    <div class="activity-log" id="activityLog"></div>
+  </div>
+
+  <div id="errorBox" class="error hidden"></div>
+  <div id="results" class="hidden"></div>
+
+  <div id="empty" class="empty">
+    <div class="empty-icon">🏢</div>
+    <p class="empty-text">Enter a company name above to map its competitive landscape</p>
+  </div>
+</div>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script>
+
+// ── Models ────────────────────────────────────────────────────────────────────
+let MODELS = { openai: [], anthropic: [] };
+
+function populateModels(provider) {
+  const select = document.getElementById('modelSelect');
+  if (!MODELS[provider] || MODELS[provider].length === 0) {
+    select.innerHTML = '<option value="">Loading models...</option>';
+    return;
+  }
+  select.innerHTML = MODELS[provider].map(m => `<option value="${m.value}">${m.label}</option>`).join('');
+}
+
+function onProviderChange() {
+  const p = document.getElementById('providerSelect').value;
+  populateModels(p);
+}
+
+function populateModels(provider) {
+  document.getElementById('modelSelect').innerHTML =
+    MODELS[provider].map(m => `<option value="${m.value}">${m.label}</option>`).join('');
+}
+
+function onProviderChange() {
+  const p = document.getElementById('providerSelect').value;
+  populateModels(p);
+}
+
+// ── Backend Storage & Presets ─────────────────────────────────────────────────
+const DEFAULT_COLS = [
+  { id: 1, name: "Size", format: "tags", instructions: "Match the closest range.", tags: "<50, 51-200, 201-1000, >1000" },
+  { id: 2, name: "Top Verticals", format: "tags", instructions: "Primary industries served.", tags: "Finance, Healthcare, Retail, Tech, Edu" },
+  { id: 3, name: "Pricing", format: "text", instructions: "Describe the core pricing model.", tags: "" }
+];
+
+let columnState = [];
+let presetState = {};
+let colIdCounter = 100;
+
+async function initColumns() {
+  try {
+    const res = await fetch('/api/settings');
+    const data = await res.json();
+    columnState = (data.columns && data.columns.length) ? data.columns : [...DEFAULT_COLS];
+    presetState = (data.presets && Object.keys(data.presets).length) ? data.presets : { "Standard Overview": [...DEFAULT_COLS] };
+  } catch (err) {
+    columnState = [...DEFAULT_COLS];
+    presetState = { "Standard Overview": [...DEFAULT_COLS] };
+  }
+  renderColumnBuilder();
+  renderPresetsDropdown();
+}
+
+function persistSettings() {
+  fetch('/api/settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ columns: columnState, presets: presetState })
+  });
+}
+
+function renderPresetsDropdown() {
+  const sel = document.getElementById('presetSelect');
+  sel.innerHTML = '<option value="">-- Load Preset --</option>';
+  Object.keys(presetState).forEach(key => {
+    sel.innerHTML += `<option value="${key}">${key}</option>`;
+  });
+}
+
+function saveCurrentAsPreset() {
+  const name = prompt("Enter a name for this preset configuration:");
+  if (!name) return;
+  const toSave = JSON.parse(JSON.stringify(columnState.filter(c => c.name.trim())));
+  if (toSave.length === 0) { alert("Cannot save an empty preset."); return; }
+  
+  presetState[name] = toSave;
+  persistSettings();
+  
+  renderPresetsDropdown();
+  document.getElementById('presetSelect').value = name;
+}
+
+function loadPreset(name) {
+  if (!name) return;
+  if (presetState[name]) {
+    columnState = JSON.parse(JSON.stringify(presetState[name]));
+    columnState.forEach(c => c.id = colIdCounter++);
+    persistSettings();
+    renderColumnBuilder();
+  }
+  document.getElementById('presetSelect').value = '';
+}
+
+// ── Custom Count Toggle ───────────────────────────────────────────────────────
+function toggleCustomCount() {
+  const select = document.getElementById('countSelect');
+  const input = document.getElementById('customCountInput');
+  if (select.value === 'custom') {
+    input.classList.remove('hidden');
+    input.focus();
+  } else {
+    input.classList.add('hidden');
+  }
+}
+
+// ── Preset Management ─────────────────────────────────────────────────────────
+
+function renderPresetsDropdown() {
+  const sel = document.getElementById('presetSelect');
+  const currentVal = sel.value; 
+  sel.innerHTML = '<option value="">-- Load Preset --</option>';
+  Object.keys(presetState).forEach(key => {
+    sel.innerHTML += `<option value="${key}">${key}</option>`;
+  });
+  if (presetState[currentVal]) sel.value = currentVal;
+}
+
+function saveCurrentAsPreset() {
+  const name = prompt("Enter a name for this preset configuration:");
+  if (!name) return;
+  const toSave = JSON.parse(JSON.stringify(columnState.filter(c => c.name.trim())));
+  if (toSave.length === 0) { alert("Cannot save an empty preset."); return; }
+  
+  presetState[name] = toSave;
+  persistSettings();
+  renderPresetsDropdown();
+  
+  document.getElementById('presetSelect').value = name;
+  document.getElementById('deletePresetBtn').classList.remove('hidden');
+}
+
+function loadPreset(name) {
+  const delBtn = document.getElementById('deletePresetBtn');
+  if (!name) {
+    delBtn.classList.add('hidden');
+    return;
+  }
+  if (presetState[name]) {
+    columnState = JSON.parse(JSON.stringify(presetState[name]));
+    columnState.forEach(c => c.id = colIdCounter++);
+    persistSettings();
+    renderColumnBuilder();
+  }
+  
+  // Protect the default template from deletion
+  if (name !== "Standard Overview") {
+    delBtn.classList.remove('hidden');
+  } else {
+    delBtn.classList.add('hidden');
+  }
+}
+
+function deletePreset() {
+  const name = document.getElementById('presetSelect').value;
+  if (!name || name === "Standard Overview") return;
+  
+  if (confirm(`Are you sure you want to delete the preset "${name}"?`)) {
+    delete presetState[name];
+    persistSettings();
+    renderPresetsDropdown();
+    clearPresetSelection();
+  }
+}
+
+function clearPresetSelection() {
+  document.getElementById('presetSelect').value = '';
+  document.getElementById('deletePresetBtn').classList.add('hidden');
+}
+
+// ── Column Builder & Drag Logic ───────────────────────────────────────────────
+
+let draggedColIndex = null;
+
+function handleDragStart(e, index) {
+  draggedColIndex = index;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => e.target.classList.add('dragging'), 0);
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const card = e.target.closest('.col-card');
+  if (card && !card.classList.contains('dragging')) {
+    card.classList.add('drag-over');
+  }
+}
+
+function handleDragLeave(e) {
+  const card = e.target.closest('.col-card');
+  if (card) card.classList.remove('drag-over');
+}
+
+function handleDrop(e, targetIndex) {
+  e.preventDefault();
+  document.querySelectorAll('.col-card').forEach(c => c.classList.remove('drag-over'));
+  
+  if (draggedColIndex !== null && draggedColIndex !== targetIndex) {
+    const item = columnState.splice(draggedColIndex, 1)[0];
+    columnState.splice(targetIndex, 0, item);
+    persistSettings();
+    clearPresetSelection();
+    renderColumnBuilder();
+  }
+}
+
+function handleDragEnd(e) {
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.col-card').forEach(c => c.classList.remove('drag-over'));
+  draggedColIndex = null;
+}
+
+function renderColumnBuilder() {
+  const container = document.getElementById('colBuilder');
+  container.innerHTML = columnState.map((col, index) => `
+    <div class="col-card" draggable="true"
+         ondragstart="handleDragStart(event, ${index})"
+         ondragover="handleDragOver(event)"
+         ondragleave="handleDragLeave(event)"
+         ondrop="handleDrop(event, ${index})"
+         ondragend="handleDragEnd(event)">
+      <div class="drag-handle">⋮⋮</div>
+      
+      <div class="col-main-content">
+        <div class="col-inputs">
+          <input type="text" style="width: 160px; flex: none;" placeholder="Column Name" value="${col.name}" onchange="updateCol(${index}, 'name', this.value)">
+          <select onchange="updateCol(${index}, 'format', this.value)">
+            <option value="text" ${col.format === 'text' ? 'selected' : ''}>Text / Phrase</option>
+            <option value="number" ${col.format === 'number' ? 'selected' : ''}>Number</option>
+            <option value="tags" ${col.format === 'tags' ? 'selected' : ''}>Custom Tags (List)</option>
+          </select>
+          <input type="text" placeholder="Instructions for AI" value="${col.instructions}" onchange="updateCol(${index}, 'instructions', this.value)" style="flex: 1;">
+        </div>
+        
+        <div class="tags-input-wrap ${col.format !== 'tags' ? 'hidden' : ''}">
+          <input type="text" placeholder="Comma separated tags..." value="${col.tags}" onchange="updateCol(${index}, 'tags', this.value)">
+        </div>
+      </div>
+
+      <button class="btn-icon" onclick="removeColumn(${index})">×</button>
+    </div>
+  `).join('');
+}
+
+function updateCol(index, field, value) {
+  columnState[index][field] = value;
+  persistSettings();
+  clearPresetSelection();
+  if (field === 'format') renderColumnBuilder();
+}
+
+function addColumn() {
+  columnState.push({ id: colIdCounter++, name: "", format: "text", instructions: "", tags: "" });
+  persistSettings();
+  clearPresetSelection();
+  renderColumnBuilder();
+}
+
+function removeColumn(index) {
+  columnState.splice(index, 1);
+  persistSettings();
+  clearPresetSelection();
+  renderColumnBuilder();
+}
+
+function updateCol(index, field, value) {
+  columnState[index][field] = value;
+  persistSettings();
+  if (field === 'format') renderColumnBuilder();
+}
+
+function addColumn() {
+  columnState.push({ id: colIdCounter++, name: "", format: "text", instructions: "", tags: "" });
+  persistSettings();
+  renderColumnBuilder();
+}
+
+function removeColumn(index) {
+  columnState.splice(index, 1);
+  persistSettings();
+  renderColumnBuilder();
+}
+
+// ── Advanced Prompt & Dynamic Schema ──────────────────────────────────────────
+const DEFAULT_PROMPT = `Find the {count} most direct competitors for "{query}" strictly within the same industry and region.`;
+
+function toggleAdvanced() {
+  const sec = document.getElementById('advancedSection');
+  const open = !sec.classList.toggle('hidden');
+  document.getElementById('advancedToggle').textContent = (open ? '▼' : '▶') + ' Advanced / Custom Prompt';
+}
+
+function resetPrompt() { document.getElementById('customPrompt').value = DEFAULT_PROMPT; }
+
+function buildPrompt(count, query) {
+  return (document.getElementById('customPrompt').value.trim() || DEFAULT_PROMPT)
+    .replace(/\{count\}/g, count).replace(/\{query\}/g, query);
+}
+
+function generateSchema() {
+  const cols = {};
+  
+  columnState.forEach(col => {
+    if (!col.name.trim()) return;
+    const safeKey = col.name.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+(.)/g, (m, chr) => chr.toUpperCase()).replace(/^\w/, c => c.toLowerCase());
+    col._safeKey = safeKey;
+    
+    let formatGuide = "String.";
+    if (col.format === 'number') formatGuide = "Number.";
+    if (col.format === 'tags') formatGuide = `Array of strings. MUST choose strictly from: [${col.tags}].`;
+    
+    cols[safeKey] = `${formatGuide} ${col.instructions}`.trim();
+  });
+
+  const schema = {
+    company: "Name of target company",
+    industry: "Broad industry",
+    competitors: [
+      {
+        name: "Competitor Name",
+        ...cols
+      }
+    ],
+    summary: "2-3 sentence market overview"
+  };
+  
+  return JSON.stringify(schema, null, 2);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+function resetLog() { document.getElementById('activityLog').innerHTML = ''; }
+
+function addLog(text) {
+  const log = document.getElementById('activityLog');
+  const prev = log.querySelector('.log-line.active');
+  if (prev) { prev.classList.replace('active','done'); prev.querySelector('.log-dot').className = 'log-dot complete'; }
+  const line = document.createElement('div');
+  line.className = 'log-line active';
+  line.innerHTML = `<span class="log-dot spinning"></span><span>${text}</span>`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+  document.getElementById('loadingSub').textContent = text;
+}
+
+function finalizeLog() {
+  const a = document.getElementById('activityLog').querySelector('.log-line.active');
+  if (a) { a.classList.replace('active','done'); a.querySelector('.log-dot').className = 'log-dot complete'; }
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+let lastResults = null;
+let lastUsedColumns = [];
+
+async function doSearch() {
+  const query = document.getElementById('searchInput').value.trim();
+  if (!query) return;
+  let count = document.getElementById('countSelect').value;
+  if (count === 'custom') {
+    count = document.getElementById('customCountInput').value.trim();
+    if (!count || isNaN(count) || count < 1) {
+      document.getElementById('errorBox').innerHTML = '<strong>Error:</strong> Please enter a valid custom number of competitors.';
+        show('errorBox');
+      return;
+    }
+  }
+  const provider = document.getElementById('providerSelect').value;
+  const model    = document.getElementById('modelSelect').value;
+  const prompt   = buildPrompt(count, query);
+  
+  const schema = generateSchema();
+  lastUsedColumns = JSON.parse(JSON.stringify(columnState.filter(c => c.name.trim())));
+
+  document.getElementById('searchBtn').disabled = true;
+  document.getElementById('searchBtn').textContent = 'Searching...';
+  hide('empty'); hide('results'); hide('errorBox');
+  resetLog(); show('loading');
+
+try {
+    addLog(`Sending request to local backend (${provider})...`);
+    
+    const res = await fetch('/api/research', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, count, provider, model, prompt, schema })
+    });
+
+    // 2. Safely parse JSON or handle raw text errors
+    let data;
+    const contentType = res.headers.get("content-type");
+    
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+      data = await res.json();
+    } else {
+      const rawError = await res.text();
+      throw new Error(rawError || `Server error: ${res.status}`);
+    }
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Backend processing failed.');
+    }
+
+    lastResults = data;
+    addLog('Done! Rendering results...');
+    finalizeLog();
+    hide('loading'); 
+    renderResults(data);
+
+  }catch (err) {
+    finalizeLog();
+    const errorBox = document.getElementById('errorBox');
+    // Display the specific message returned by the backend
+    errorBox.innerHTML = `<strong>Error:</strong> ${err.message}`;
+    hide('loading'); show('errorBox'); show('empty');
+  } finally {
+    document.getElementById('searchBtn').disabled = false;
+    document.getElementById('searchBtn').textContent = 'Research →';
+  }
+}
+
+// ── Dynamic Render Results ────────────────────────────────────────────────────
+function renderResults(data) {
+  const el = document.getElementById('results');
+  const competitors = data.competitors || [];
+  
+  if (competitors.length === 0) {
+    el.innerHTML = '<div class="error fade-in">No competitors returned.</div>';
+    show('results');
+    return;
+  }
+
+  const thHTML = lastUsedColumns.map(col => `<th>${col.name}</th>`).join('');
+
+  let rows = competitors.map((c, i) => {
+    let tds = lastUsedColumns.map(col => {
+      const val = c[col._safeKey];
+      if (Array.isArray(val)) {
+        return `<td>${val.map(v => `<span class="chip">${v}</span>`).join('') || '—'}</td>`;
+      }
+      return `<td>${val !== undefined && val !== null ? val : '—'}</td>`;
+    }).join('');
+
+    return `<tr>
+      <td class="td-num">${i + 1}</td>
+      <td><div class="td-name">${c.name}</div></td>
+      ${tds}
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="results-header fade-in">
+      <div>
+        <div class="results-company">${data.company}</div>
+        <div class="results-sub">
+          <span class="badge">${data.industry}</span>
+          <span class="count">${competitors.length} competitors found</span>
+        </div>
+      </div>
+      <button class="export-btn" onclick="exportExcel()">Export to Excel ↓</button>
+    </div>
+    ${data.summary ? `<p class="summary-text fade-in">${data.summary}</p>` : ''}
+    <div class="table-wrap fade-in">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Company</th>${thHTML}
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  show('results');
+}
+
+// ── Dynamic Export to Excel ───────────────────────────────────────────────────
+function exportExcel() {
+  if (!lastResults || typeof XLSX === 'undefined') return;
+  const { company, industry, summary = '', competitors = [] } = lastResults;
+  if (competitors.length === 0) return;
+
+  const headerRow = ['#', 'Company', ...lastUsedColumns.map(col => col.name)];
+
+  const ws = XLSX.utils.aoa_to_sheet([
+    [`Competitor Research: ${company}`],
+    [`Industry: ${industry}`],
+    [`Summary: ${summary}`],
+    [],
+    headerRow,
+    ...competitors.map((c, i) => [
+      i + 1,
+      c.name,
+      ...lastUsedColumns.map(col => {
+        const val = c[col._safeKey];
+        return Array.isArray(val) ? val.join(', ') : (val || '');
+      })
+    ])
+  ]);
+
+  ws['!cols'] = [{ wch:4 }, { wch:22 }, ...lastUsedColumns.map(() => ({ wch: 30 }))];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Competitors');
+  XLSX.writeFile(wb, `competitors-${company.replace(/\s+/g,'-').toLowerCase()}.xlsx`);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function fetchModels() {
+  try {
+    const res = await fetch('/api/models');
+    if (res.ok) {
+      MODELS = await res.json();
+    }
+  } catch (err) {
+    console.error("Failed to fetch dynamic models. Relying on backend fallbacks.");
+  }
+  populateModels(document.getElementById('providerSelect').value);
+}
+
+async function initApp() {
+  document.getElementById('customPrompt').value = DEFAULT_PROMPT;
+  populateModels('openai'); // Sets "Loading..." state
+  
+  // Run network fetches concurrently
+  await Promise.all([
+    fetchModels(),
+    initColumns()
+  ]);
+}
+
+initApp();
+</script>
+</body>
+</html>
