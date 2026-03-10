@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Competitor Research Tool</title>
+<title>Competitor Intelligence Suite</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -11,11 +11,19 @@
   h1 { font-size: clamp(28px, 5vw, 44px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 8px; }
   .gradient-text { background: #ff1400; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   .container { max-width: 1100px; margin: 0 auto; }
-  .header { margin-bottom: 40px; }
+  .header { margin-bottom: 30px; }
   .label { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
   .icon { width: 36px; height: 36px; background: #ff1400; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
   .tag { font-size: 13px; font-weight: 600; color: #ff1400; letter-spacing: 0.12em; text-transform: uppercase; }
   .subtitle { color: #555; font-size: 15px; }
+
+  /* Tabs */
+  .tabs-nav { display: flex; gap: 10px; margin-bottom: 24px; border-bottom: 2px solid #e8e8e8; }
+  .tab-btn { background: none; border: none; padding: 12px 24px; font-size: 15px; font-weight: 600; color: #888; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; font-family: 'Space Grotesk', sans-serif; }
+  .tab-btn:hover { color: #111; }
+  .tab-btn.active { color: #ff1400; border-bottom-color: #ff1400; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
 
   /* Settings Section */
   .settings-section { background: #fff; border: 1px solid #e8e8e8; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: flex; flex-direction: column; gap: 16px; }
@@ -24,724 +32,648 @@
   .provider-label { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.08em; }
   
   /* Inputs & Selects */
-  input[type="text"] { flex: 1; background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 14px 18px; color: #111; font-size: 15px; font-family: 'Space Grotesk', sans-serif; transition: border-color 0.2s; }
-  input[type="text"]:focus { outline: none; border-color: #ff1400; }
+  input[type="text"], input[type="number"], input[type="file"] { flex: 1; background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 14px 18px; color: #111; font-size: 15px; font-family: 'Space Grotesk', sans-serif; transition: border-color 0.2s; }
+  input[type="text"]:focus, input[type="number"]:focus { outline: none; border-color: #ff1400; }
   input::placeholder { color: #999; }
-  select { background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 8px; padding: 10px 14px; color: #111; font-size: 14px; font-family: 'Space Grotesk', sans-serif; cursor: pointer; transition: border-color 0.2s; min-width: 160px; }
-  select:focus { outline: none; border-color: #ff1400; }
-
+  select { background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 8px; padding: 10px 14px; color: #111; font-size: 14px; font-family: 'Space Grotesk', sans-serif; cursor: pointer; min-width: 160px; }
+  
   /* Column Builder & Presets */
   .col-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
   .preset-controls { display: flex; gap: 8px; align-items: center; }
-  .preset-controls select { padding: 6px 10px; font-size: 12px; min-width: 140px; }
-  .btn-preset { background: #f6f6f6; border: 1px solid #e8e8e8; border-radius: 6px; padding: 6px 12px; color: #111; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Space Grotesk', sans-serif; }
+  .btn-preset { background: #f6f6f6; border: 1px solid #e8e8e8; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Space Grotesk', sans-serif; }
   .btn-preset:hover { border-color: #ff1400; color: #ff1400; background: #fffaf9; }
   
   .col-builder-container { display: flex; flex-direction: column; gap: 10px; }
-  .col-card { display: grid; grid-template-columns: 20px 1fr 38px; gap: 10px; align-items: start; background: #fcfcfc; border: 1px solid #e8e8e8; padding: 12px; border-radius: 10px; flex-wrap: wrap; }
-  .col-card input[type="text"] { padding: 10px 14px; font-size: 13px; border-radius: 6px; }
-  .col-card select { padding: 10px 12px; font-size: 13px; border-radius: 6px; }
-  .col-main-content { display: flex; flex-direction: column; gap: 8px; }
-  .col-inputs { display: flex; gap: 10px; width: 100%; }
-  .tags-input-wrap { display: inline-flex; width: fit-content; min-width: 160px; max-width: 100%; }
+  .col-card { display: flex; gap: 12px; align-items: flex-start; background: #fcfcfc; border: 1px solid #e8e8e8; padding: 12px; border-radius: 10px; }
+  .col-main-content { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .col-card input[type="text"], .col-card select { padding: 10px 14px; font-size: 13px; border-radius: 6px; }
+  .col-inputs { display: flex; gap: 10px; width: 100%; flex-wrap: wrap; }
+  .tags-input-wrap { display: flex; width: 100%; }
   .tags-input-wrap input { width: 100%; }
-  .btn-icon { background: #fee2e2; color: #cc1000; border: none; border-radius: 6px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; transition: all 0.2s; flex-shrink: 0; }
+  .btn-icon { background: #fee2e2; color: #cc1000; border: none; border-radius: 6px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; flex-shrink: 0; }
   .btn-icon:hover { background: #fca5a5; }
-  .btn-add { background: #f6f6f6; border: 1px dashed #ccc; border-radius: 10px; padding: 10px; color: #555; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Space Grotesk', sans-serif; }
-  .btn-add:hover { border-color: #ff1400; color: #ff1400; background: #fffaf9; }
+  .btn-add { background: #f6f6f6; border: 1px dashed #ccc; border-radius: 10px; padding: 10px; color: #555; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .btn-add:hover { border-color: #ff1400; color: #ff1400; }
 
-  /* Search row */
-  .search-row { display: flex; gap: 10px; margin-bottom: 10px; }
-  #countSelect { min-width: 140px; background: #fff; border-radius: 10px; }
-  button.search-btn-main { background: #ff1400; border: none; border-radius: 10px; padding: 14px 24px; color: #fff; font-weight: 600; font-size: 14px; cursor: pointer; white-space: nowrap; transition: all 0.2s; font-family: 'Space Grotesk', sans-serif; flex-shrink: 0; }
+  /* Controls & Search */
+  .search-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+  button.search-btn-main { background: #ff1400; border: none; border-radius: 10px; padding: 14px 24px; color: #fff; font-weight: 600; font-size: 14px; cursor: pointer; white-space: nowrap; transition: all 0.2s; font-family: 'Space Grotesk', sans-serif; }
   button.search-btn-main:hover { background: #cc1000; transform: translateY(-1px); }
-  button.search-btn-main:disabled { background: #aaa; cursor: not-allowed; transform: none; opacity: 0.6; }
+  button.search-btn-main:disabled { background: #aaa; cursor: not-allowed; transform: none; }
+
+  /* Verify Tab Specifics */
+  .upload-box { border: 2px dashed #ccc; border-radius: 12px; padding: 30px; text-align: center; background: #fafafa; margin-bottom: 20px; transition: border-color 0.2s; }
+  .upload-box:hover { border-color: #ff1400; }
+  .mapping-section { background: #fff; border: 1px solid #e8e8e8; border-radius: 12px; padding: 20px; }
+  .mapping-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #111; }
+  .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+  .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+  .status-corrected { background: #fff0f0; color: #cc1000; border: 1px solid #ffb3aa; }
+  .status-unchanged { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+  .status-filled { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
 
   /* Advanced prompt */
-  .advanced-toggle { font-size: 12px; color: #999; cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 14px; transition: color 0.2s; }
-  .advanced-toggle:hover { color: #ff1400; }
+  .advanced-toggle { font-size: 12px; color: #999; cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 14px; }
   .advanced-section { background: #fff; border: 1px solid #e8e8e8; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-  .advanced-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-  .advanced-title { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.08em; }
-  .reset-btn { font-size: 11px; color: #aaa; background: none; border: none; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: color 0.15s; }
-  .reset-btn:hover { color: #ff1400; }
-  textarea { width: 100%; background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 8px; padding: 12px 14px; color: #111; font-size: 13px; font-family: 'Space Grotesk', sans-serif; resize: vertical; min-height: 110px; transition: border-color 0.2s; line-height: 1.5; }
-  textarea:focus { outline: none; border-color: #ff1400; }
-  .advanced-note { font-size: 11px; color: #bbb; margin-top: 6px; line-height: 1.5; }
+  textarea { width: 100%; background: #f9f9f9; border: 1px solid #e8e8e8; border-radius: 8px; padding: 12px 14px; font-family: 'Space Grotesk', sans-serif; resize: vertical; min-height: 110px; }
 
-  /* Results header & Table */
+  /* Table */
   .results-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
   .results-company { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
-  .results-sub { display: flex; gap: 8px; align-items: center; }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; background: #ffe5e2; color: #ff1400; border: 1px solid #ffb3aa; }
-  .count { color: #666; font-size: 13px; }
-  .summary-text { color: #555; font-size: 13px; line-height: 1.6; margin-bottom: 16px; background: #fff; border: 1px solid #e8e8e8; border-left: 3px solid #ff1400; border-radius: 8px; padding: 12px 16px; }
-  .export-btn { background: #111; border: none; border-radius: 8px; padding: 9px 18px; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: all 0.2s; white-space: nowrap; }
-  .export-btn:hover { background: #333; transform: translateY(-1px); }
+  .export-btn { background: #111; border: none; border-radius: 8px; padding: 9px 18px; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; font-family: 'Space Grotesk', sans-serif; transition: all 0.2s; }
   .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid #e8e8e8; background: #fff; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   thead th { background: #f6f6f6; padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid #e8e8e8; white-space: nowrap; }
   tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.15s; }
   tbody tr:hover { background: #fafafa; }
   td { padding: 12px 14px; vertical-align: top; }
-  .td-num { color: #ccc; font-size: 12px; font-weight: 600; width: 32px; }
-  .td-name { font-weight: 700; font-size: 14px; white-space: nowrap; }
   .chip { display: inline-block; background: #f0f0f0; border: 1px solid #e0e0e0; border-radius: 6px; padding: 2px 8px; font-size: 12px; margin: 2px; white-space: nowrap; }
   
-  /* Loading & Status */
+  /* Shared Utils */
   .loading { padding: 32px 0; }
   .loading-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
   .loading-icon { font-size: 28px; animation: pulse 1.5s ease-in-out infinite; }
   .loading-text { color: #ff1400; font-weight: 600; font-size: 16px; }
-  .loading-sub { color: #666; font-size: 13px; margin-top: 2px; }
   .activity-log { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 14px 16px; font-size: 13px; max-height: 200px; overflow-y: auto; }
-  .log-line { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; border-bottom: 1px solid #f4f4f4; color: #555; }
+  .log-line { display: flex; align-items: flex-start; gap: 10px; padding: 5px 0; color: #555; }
   .log-line.active { color: #111; font-weight: 500; }
-  .log-line.done { color: #999; }
-  .log-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .log-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; background: #ccc; }
   .log-dot.spinning { background: #ff1400; animation: pulse 0.9s infinite; }
-  .log-dot.complete { background: #16a34a; }
-
-  /* Error / Empty */
   .error { background: #fff0f0; border: 1px solid #ffb3aa; border-radius: 10px; padding: 16px; color: #cc1000; margin-bottom: 16px; font-size: 14px; }
-  .empty { text-align: center; padding: 80px 0; color: #888; }
-  .empty-icon { font-size: 48px; margin-bottom: 12px; }
-  .empty-text { font-size: 15px; margin-bottom: 16px; }
   .hidden { display: none !important; }
   @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
   @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
   .fade-in { animation: fadeIn 0.4s ease forwards; }
-
-  /* Drag & Drop and Delete Button Styles */
   .btn-delete { color: #cc1000; border-color: #fca5a5; }
-  .btn-delete:hover { background: #fee2e2; border-color: #cc1000; }
-  .drag-handle { cursor: grab; color: #ccc; font-size: 18px; padding: 10px 0; width: 20px; display: flex; align-items: center; justify-content: center; user-select: none; transition: color 0.2s; }
-  .drag-handle:hover { color: #ff1400; }
-  .col-card.dragging { opacity: 0.5; border: 1px dashed #ff1400; background: #fffaf9; }
-  .col-card.drag-over { border-top: 3px solid #ff1400; padding-top: 7px; }
+
+/* Custom Checkboxes */
+  .checkbox-label { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; user-select: none; }
+  .checkbox-label input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e8e8e8;
+    border-radius: 6px;
+    background-color: #f9f9f9;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .checkbox-label input[type="checkbox"]:checked {
+    background-color: #ff1400;
+    border-color: #ff1400;
+  }
+  .checkbox-label input[type="checkbox"]:checked::after {
+    content: "✓";
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+  }
+  .checkbox-label:hover input[type="checkbox"]:not(:checked) {
+    border-color: #ffb3aa;
+  }
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <div class="label">
-      <div class="icon">⚡</div>
-      <span class="tag">Competitive Intelligence</span>
-    </div>
-    <h1>Find Your <span class="gradient-text">Competitors</span></h1>
-    <p class="subtitle">Enter any company or product to automatically surface competitive landscape data.</p>
+    <div class="label"><div class="icon">⚡</div><span class="tag">Competitive Intelligence</span></div>
+    <h1>Data <span class="gradient-text">Suite</span></h1>
+    <p class="subtitle">Discover new competitors or verify existing market datasets automatically.</p>
   </div>
 
-  <div class="settings-section">
-    <div class="settings-row">
-      <div class="provider-select-wrap">
-        <span class="provider-label">Provider</span>
-        <select id="providerSelect" onchange="onProviderChange()">
-          <option value="openai">OpenAI</option>
-          <option value="anthropic">Anthropic</option>
-        </select>
-      </div>
-      <div class="provider-select-wrap">
-        <span class="provider-label">Model</span>
-        <select id="modelSelect"></select>
-      </div>
-    </div>
-    
-    <div style="width: 100%; height: 1px; background: #e8e8e8; margin: 4px 0;"></div>
-    
-    <div class="provider-select-wrap">
-      <div class="col-header-row">
-        <span class="provider-label" style="margin-bottom:0;">Custom Data Columns</span>
-        <div class="preset-controls">
-          <select id="presetSelect" onchange="loadPreset(this.value)">
-            <option value="">-- Load Preset --</option>
-          </select>
-          <button class="btn-preset" onclick="saveCurrentAsPreset()">Save Preset</button>
-          <button class="btn-preset btn-delete hidden" id="deletePresetBtn" onclick="deletePreset()">Delete</button>
-        </div>
-      </div>
-      <div class="col-builder-container" id="colBuilder">
-        </div>
-      <button class="btn-add" onclick="addColumn()">+ Add New Column</button>
-    </div>
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('research')">Competitor Discovery</button>
+    <button class="tab-btn" onclick="switchTab('verify')">Data Verification</button>
+    <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
   </div>
 
-<div class="search-row">
-    <input type="text" id="searchInput" placeholder="e.g. Notion, Stripe, Figma, Salesforce..." onkeydown="if(event.key==='Enter') doSearch()" />
-    <div style="display: flex; gap: 8px;">
+  <div id="tab-research" class="tab-content active">
+    <div class="settings-section">
+      <div class="provider-select-wrap">
+        <div class="col-header-row">
+          <span class="provider-label">Custom Data Columns</span>
+          <div class="preset-controls">
+            <select id="presetSelect" onchange="loadPreset(this.value)"></select>
+            <button class="btn-preset" onclick="saveCurrentAsPreset()">Save Preset</button>
+            <button class="btn-preset btn-delete hidden" id="deletePresetBtn" onclick="deletePreset()">Delete</button>
+          </div>
+        </div>
+        <div class="col-builder-container" id="colBuilder"></div>
+        <button class="btn-add" onclick="addColumn()">+ Add New Column</button>
+      </div>
+    </div>
+
+    <div class="search-row">
+      <input type="text" id="searchInput" placeholder="e.g. Notion, Stripe, Figma..." onkeydown="if(event.key==='Enter') doSearch()" />
       <select id="countSelect" onchange="toggleCustomCount()">
         <option value="3">3 companies</option>
         <option value="5" selected>5 companies</option>
         <option value="8">8 companies</option>
-        <option value="12">12 companies</option>
         <option value="custom">Custom...</option>
       </select>
-      <input type="number" id="customCountInput" class="hidden" min="1" max="50" placeholder="#" style="width: 70px; padding: 10px 12px; font-size: 14px; border-radius: 8px; border: 1px solid #e8e8e8; background: #f9f9f9;">
+      <input type="number" id="customCountInput" class="hidden" min="1" max="50" placeholder="#">
+      <button class="search-btn-main" id="searchBtn" onclick="doSearch()">Research →</button>
     </div>
-    <button class="search-btn-main" id="searchBtn" onclick="doSearch()">Research →</button>
+
+    <div class="advanced-toggle" id="advancedToggle" onclick="toggleAdvanced()">▶ Advanced / Custom Prompt</div>
+    <div class="advanced-section hidden" id="advancedSection">
+      <textarea id="customPrompt"></textarea>
+    </div>
+    
+    <div id="resultsResearch"></div>
   </div>
 
-  <div class="advanced-toggle" id="advancedToggle" onclick="toggleAdvanced()">▶ Advanced / Custom Prompt</div>
-  <div class="advanced-section hidden" id="advancedSection">
-    <div class="advanced-header">
-      <span class="advanced-title">Custom Research Prompt</span>
-      <button class="reset-btn" onclick="resetPrompt()">Reset to default</button>
+  <div id="tab-verify" class="tab-content">
+    <div class="upload-box">
+      <h3 style="margin-bottom: 12px;">Upload Existing Competitor Data</h3>
+      <p style="color: #666; margin-bottom: 16px; font-size: 14px;">Select an Excel (.xlsx) or CSV file containing your dataset.</p>
+      <input type="file" id="excelUpload" accept=".xlsx, .xls, .csv" style="max-width: 300px; padding: 8px;" />
     </div>
-    <textarea id="customPrompt"></textarea>
-    <div class="advanced-note">Use <strong>{count}</strong> and <strong>{query}</strong> as placeholders.</div>
+
+    <div id="dataPreviewSection" class="mapping-section hidden" style="margin-bottom: 20px;">
+      <div class="mapping-title">Data Preview</div>
+      <div id="dataPreviewContainer"></div>
+    </div>
+
+    <div id="mappingSection" class="mapping-section hidden">
+      <div class="mapping-title">1. Identify the Primary Entity Column</div>
+      <select id="companyColSelect" style="margin-bottom: 24px;"></select>
+
+      <div class="mapping-title">2. Select Columns to Verify & Update</div>
+      <div id="verifyColsList" class="checkbox-grid"></div>
+
+      <div class="mapping-title" style="margin-top: 10px;">3. Advanced Competitor Analysis (Optional)</div>
+      <div style="margin-bottom: 12px;">
+        <input type="text" id="targetCompanyInput" placeholder="Target Company (e.g., ML6)" style="width: 100%; max-width: 400px; padding: 10px; font-size: 14px; border-radius: 8px;">
+      </div>
+      <div class="checkbox-grid" style="margin-bottom: 20px;">
+        <label class="checkbox-label"><input type="checkbox" id="cbVerifyCompetitor"> Verify if still a direct competitor</label>
+        <label class="checkbox-label"><input type="checkbox" id="cbRankCompetitor"> Rank threat level (1-10)</label>
+      </div>
+
+      <button class="search-btn-main" id="verifyBtn" onclick="doVerify()" style="width: 100%; margin-top: 10px;">Run Verification Process →</button>
+    </div>
+
+    <div id="resultsVerify"></div>
+  </div>
+
+  <div id="tab-settings" class="tab-content">
+    <div class="settings-section">
+      <div class="settings-row">
+        <div class="provider-select-wrap">
+          <span class="provider-label">AI Provider</span>
+          <select id="providerSelect" onchange="onProviderChange()">
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+          </select>
+        </div>
+        <div class="provider-select-wrap">
+          <span class="provider-label">Model</span>
+          <select id="modelSelect"></select>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="loading" class="loading hidden">
     <div class="loading-header">
       <div class="loading-icon">🔍</div>
-      <div>
-        <p class="loading-text">Researching competitors...</p>
-        <p class="loading-sub" id="loadingSub">Initialising...</p>
-      </div>
+      <div><p class="loading-text" id="loadingTitle">Processing...</p><p class="loading-sub" id="loadingSub"></p></div>
     </div>
     <div class="activity-log" id="activityLog"></div>
   </div>
-
   <div id="errorBox" class="error hidden"></div>
-  <div id="results" class="hidden"></div>
 
-  <div id="empty" class="empty">
-    <div class="empty-icon">🏢</div>
-    <p class="empty-text">Enter a company name above to map its competitive landscape</p>
-  </div>
 </div>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script>
-
-// ── Models ────────────────────────────────────────────────────────────────────
+// ── Shared State & Setup ──────────────────────────────────────────────────────
 let MODELS = { openai: [], anthropic: [] };
+let activeTab = 'research';
+
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector(`[onclick="switchTab('${tabId}')"]`).classList.add('active');
+  document.getElementById(`tab-${tabId}`).classList.add('active');
+  activeTab = tabId;
+  hide('errorBox'); hide('loading');
+}
+
+async function fetchModels() {
+  try {
+    const res = await fetch('/api/models');
+    if (res.ok) { MODELS = await res.json(); populateModels(document.getElementById('providerSelect').value); }
+  } catch (err) { console.error("Model fetch failed."); }
+}
 
 function populateModels(provider) {
   const select = document.getElementById('modelSelect');
-  if (!MODELS[provider] || MODELS[provider].length === 0) {
-    select.innerHTML = '<option value="">Loading models...</option>';
-    return;
-  }
+  if (!MODELS[provider] || MODELS[provider].length === 0) return select.innerHTML = '<option>Loading...</option>';
   select.innerHTML = MODELS[provider].map(m => `<option value="${m.value}">${m.label}</option>`).join('');
 }
 
-function onProviderChange() {
-  const p = document.getElementById('providerSelect').value;
-  populateModels(p);
+function onProviderChange() { populateModels(document.getElementById('providerSelect').value); }
+
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+
+function startLog(title) {
+  hide('errorBox'); show('loading');
+  document.getElementById('loadingTitle').textContent = title;
+  document.getElementById('activityLog').innerHTML = '';
+}
+function addLog(text) {
+  const log = document.getElementById('activityLog');
+  const prev = log.querySelector('.log-line.active');
+  if (prev) { prev.classList.remove('active'); prev.querySelector('.log-dot').className = 'log-dot'; }
+  log.innerHTML += `<div class="log-line active"><span class="log-dot spinning"></span><span>${text}</span></div>`;
+  document.getElementById('loadingSub').textContent = text;
 }
 
-function populateModels(provider) {
-  document.getElementById('modelSelect').innerHTML =
-    MODELS[provider].map(m => `<option value="${m.value}">${m.label}</option>`).join('');
-}
-
-function onProviderChange() {
-  const p = document.getElementById('providerSelect').value;
-  populateModels(p);
-}
-
-// ── Backend Storage & Presets ─────────────────────────────────────────────────
+// ── Tab 1: Research Logic ─────────────────────────────────────────────────────
 const DEFAULT_COLS = [
-  { id: 1, name: "Size", format: "tags", instructions: "Match the closest range.", tags: "<50, 51-200, 201-1000, >1000" },
-  { id: 2, name: "Top Verticals", format: "tags", instructions: "Primary industries served.", tags: "Finance, Healthcare, Retail, Tech, Edu" },
-  { id: 3, name: "Pricing", format: "text", instructions: "Describe the core pricing model.", tags: "" }
+  { id: 1, name: "Size", format: "tags", instructions: "Closest range.", tags: "<50, 51-200, 201-1000, >1000" },
+  { id: 2, name: "Pricing", format: "text", instructions: "Core model.", tags: "" }
 ];
-
 let columnState = [];
 let presetState = {};
-let colIdCounter = 100;
+let lastUsedColumns = [];
+let lastResults = null;
 
 async function initColumns() {
   try {
     const res = await fetch('/api/settings');
     const data = await res.json();
-    columnState = (data.columns && data.columns.length) ? data.columns : [...DEFAULT_COLS];
-    presetState = (data.presets && Object.keys(data.presets).length) ? data.presets : { "Standard Overview": [...DEFAULT_COLS] };
-  } catch (err) {
-    columnState = [...DEFAULT_COLS];
-    presetState = { "Standard Overview": [...DEFAULT_COLS] };
-  }
-  renderColumnBuilder();
-  renderPresetsDropdown();
+    columnState = data.columns?.length ? data.columns : [...DEFAULT_COLS];
+    presetState = Object.keys(data.presets || {}).length ? data.presets : { "Standard": [...DEFAULT_COLS] };
+  } catch(e) { columnState = [...DEFAULT_COLS]; presetState = { "Standard": [...DEFAULT_COLS] }; }
+  renderColumnBuilder(); renderPresetsDropdown();
 }
-
-function persistSettings() {
-  fetch('/api/settings', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ columns: columnState, presets: presetState })
-  });
-}
-
-function renderPresetsDropdown() {
-  const sel = document.getElementById('presetSelect');
-  sel.innerHTML = '<option value="">-- Load Preset --</option>';
-  Object.keys(presetState).forEach(key => {
-    sel.innerHTML += `<option value="${key}">${key}</option>`;
-  });
-}
-
-function saveCurrentAsPreset() {
-  const name = prompt("Enter a name for this preset configuration:");
-  if (!name) return;
-  const toSave = JSON.parse(JSON.stringify(columnState.filter(c => c.name.trim())));
-  if (toSave.length === 0) { alert("Cannot save an empty preset."); return; }
-  
-  presetState[name] = toSave;
-  persistSettings();
-  
-  renderPresetsDropdown();
-  document.getElementById('presetSelect').value = name;
-}
-
-function loadPreset(name) {
-  if (!name) return;
-  if (presetState[name]) {
-    columnState = JSON.parse(JSON.stringify(presetState[name]));
-    columnState.forEach(c => c.id = colIdCounter++);
-    persistSettings();
-    renderColumnBuilder();
-  }
-  document.getElementById('presetSelect').value = '';
-}
-
-// ── Custom Count Toggle ───────────────────────────────────────────────────────
-function toggleCustomCount() {
-  const select = document.getElementById('countSelect');
-  const input = document.getElementById('customCountInput');
-  if (select.value === 'custom') {
-    input.classList.remove('hidden');
-    input.focus();
-  } else {
-    input.classList.add('hidden');
-  }
-}
-
-// ── Preset Management ─────────────────────────────────────────────────────────
-
-function renderPresetsDropdown() {
-  const sel = document.getElementById('presetSelect');
-  const currentVal = sel.value; 
-  sel.innerHTML = '<option value="">-- Load Preset --</option>';
-  Object.keys(presetState).forEach(key => {
-    sel.innerHTML += `<option value="${key}">${key}</option>`;
-  });
-  if (presetState[currentVal]) sel.value = currentVal;
-}
-
-function saveCurrentAsPreset() {
-  const name = prompt("Enter a name for this preset configuration:");
-  if (!name) return;
-  const toSave = JSON.parse(JSON.stringify(columnState.filter(c => c.name.trim())));
-  if (toSave.length === 0) { alert("Cannot save an empty preset."); return; }
-  
-  presetState[name] = toSave;
-  persistSettings();
-  renderPresetsDropdown();
-  
-  document.getElementById('presetSelect').value = name;
-  document.getElementById('deletePresetBtn').classList.remove('hidden');
-}
-
-function loadPreset(name) {
-  const delBtn = document.getElementById('deletePresetBtn');
-  if (!name) {
-    delBtn.classList.add('hidden');
-    return;
-  }
-  if (presetState[name]) {
-    columnState = JSON.parse(JSON.stringify(presetState[name]));
-    columnState.forEach(c => c.id = colIdCounter++);
-    persistSettings();
-    renderColumnBuilder();
-  }
-  
-  // Protect the default template from deletion
-  if (name !== "Standard Overview") {
-    delBtn.classList.remove('hidden');
-  } else {
-    delBtn.classList.add('hidden');
-  }
-}
-
-function deletePreset() {
-  const name = document.getElementById('presetSelect').value;
-  if (!name || name === "Standard Overview") return;
-  
-  if (confirm(`Are you sure you want to delete the preset "${name}"?`)) {
-    delete presetState[name];
-    persistSettings();
-    renderPresetsDropdown();
-    clearPresetSelection();
-  }
-}
-
-function clearPresetSelection() {
-  document.getElementById('presetSelect').value = '';
-  document.getElementById('deletePresetBtn').classList.add('hidden');
-}
-
-// ── Column Builder & Drag Logic ───────────────────────────────────────────────
-
-let draggedColIndex = null;
-
-function handleDragStart(e, index) {
-  draggedColIndex = index;
-  e.dataTransfer.effectAllowed = 'move';
-  setTimeout(() => e.target.classList.add('dragging'), 0);
-}
-
-function handleDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  const card = e.target.closest('.col-card');
-  if (card && !card.classList.contains('dragging')) {
-    card.classList.add('drag-over');
-  }
-}
-
-function handleDragLeave(e) {
-  const card = e.target.closest('.col-card');
-  if (card) card.classList.remove('drag-over');
-}
-
-function handleDrop(e, targetIndex) {
-  e.preventDefault();
-  document.querySelectorAll('.col-card').forEach(c => c.classList.remove('drag-over'));
-  
-  if (draggedColIndex !== null && draggedColIndex !== targetIndex) {
-    const item = columnState.splice(draggedColIndex, 1)[0];
-    columnState.splice(targetIndex, 0, item);
-    persistSettings();
-    clearPresetSelection();
-    renderColumnBuilder();
-  }
-}
-
-function handleDragEnd(e) {
-  e.target.classList.remove('dragging');
-  document.querySelectorAll('.col-card').forEach(c => c.classList.remove('drag-over'));
-  draggedColIndex = null;
-}
+function persistSettings() { fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ columns: columnState, presets: presetState }) }); }
 
 function renderColumnBuilder() {
-  const container = document.getElementById('colBuilder');
-  container.innerHTML = columnState.map((col, index) => `
-    <div class="col-card" draggable="true"
-         ondragstart="handleDragStart(event, ${index})"
-         ondragover="handleDragOver(event)"
-         ondragleave="handleDragLeave(event)"
-         ondrop="handleDrop(event, ${index})"
-         ondragend="handleDragEnd(event)">
-      <div class="drag-handle">⋮⋮</div>
-      
+  document.getElementById('colBuilder').innerHTML = columnState.map((col, index) => `
+    <div class="col-card">
       <div class="col-main-content">
         <div class="col-inputs">
-          <input type="text" style="width: 160px; flex: none;" placeholder="Column Name" value="${col.name}" onchange="updateCol(${index}, 'name', this.value)">
-          <select onchange="updateCol(${index}, 'format', this.value)">
-            <option value="text" ${col.format === 'text' ? 'selected' : ''}>Text / Phrase</option>
-            <option value="number" ${col.format === 'number' ? 'selected' : ''}>Number</option>
-            <option value="tags" ${col.format === 'tags' ? 'selected' : ''}>Custom Tags (List)</option>
+          <input type="text" placeholder="Name" value="${col.name}" onchange="updateCol(${index}, 'name', this.value)" style="width:160px; flex:none;">
+          <select onchange="updateCol(${index}, 'format', this.value)" style="width:120px; flex:none;">
+            <option value="text" ${col.format==='text'?'selected':''}>Text</option>
+            <option value="tags" ${col.format==='tags'?'selected':''}>Tags</option>
           </select>
-          <input type="text" placeholder="Instructions for AI" value="${col.instructions}" onchange="updateCol(${index}, 'instructions', this.value)" style="flex: 1;">
+          <input type="text" placeholder="AI Instructions" value="${col.instructions}" onchange="updateCol(${index}, 'instructions', this.value)" style="flex:1; min-width:200px;">
         </div>
-        
-        <div class="tags-input-wrap ${col.format !== 'tags' ? 'hidden' : ''}">
-          <input type="text" placeholder="Comma separated tags..." value="${col.tags}" onchange="updateCol(${index}, 'tags', this.value)">
+        <div class="tags-input-wrap ${col.format!=='tags'?'hidden':''}">
+          <input type="text" placeholder="Comma tags..." value="${col.tags}" onchange="updateCol(${index}, 'tags', this.value)">
         </div>
       </div>
-
       <button class="btn-icon" onclick="removeColumn(${index})">×</button>
     </div>
   `).join('');
 }
 
-function updateCol(index, field, value) {
-  columnState[index][field] = value;
-  persistSettings();
-  clearPresetSelection();
-  if (field === 'format') renderColumnBuilder();
-}
-
-function addColumn() {
-  columnState.push({ id: colIdCounter++, name: "", format: "text", instructions: "", tags: "" });
-  persistSettings();
-  clearPresetSelection();
-  renderColumnBuilder();
-}
-
-function removeColumn(index) {
-  columnState.splice(index, 1);
-  persistSettings();
-  clearPresetSelection();
-  renderColumnBuilder();
-}
-
-function updateCol(index, field, value) {
-  columnState[index][field] = value;
-  persistSettings();
-  if (field === 'format') renderColumnBuilder();
-}
-
-function addColumn() {
-  columnState.push({ id: colIdCounter++, name: "", format: "text", instructions: "", tags: "" });
-  persistSettings();
-  renderColumnBuilder();
-}
-
-function removeColumn(index) {
-  columnState.splice(index, 1);
-  persistSettings();
-  renderColumnBuilder();
-}
-
-// ── Advanced Prompt & Dynamic Schema ──────────────────────────────────────────
-const DEFAULT_PROMPT = `Find the {count} most direct competitors for "{query}" strictly within the same industry and region.`;
-
-function toggleAdvanced() {
-  const sec = document.getElementById('advancedSection');
-  const open = !sec.classList.toggle('hidden');
-  document.getElementById('advancedToggle').textContent = (open ? '▼' : '▶') + ' Advanced / Custom Prompt';
-}
-
-function resetPrompt() { document.getElementById('customPrompt').value = DEFAULT_PROMPT; }
-
-function buildPrompt(count, query) {
-  return (document.getElementById('customPrompt').value.trim() || DEFAULT_PROMPT)
-    .replace(/\{count\}/g, count).replace(/\{query\}/g, query);
-}
-
-function generateSchema() {
-  const cols = {};
-  
-  columnState.forEach(col => {
-    if (!col.name.trim()) return;
-    const safeKey = col.name.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+(.)/g, (m, chr) => chr.toUpperCase()).replace(/^\w/, c => c.toLowerCase());
-    col._safeKey = safeKey;
-    
-    let formatGuide = "String.";
-    if (col.format === 'number') formatGuide = "Number.";
-    if (col.format === 'tags') formatGuide = `Array of strings. MUST choose strictly from: [${col.tags}].`;
-    
-    cols[safeKey] = `${formatGuide} ${col.instructions}`.trim();
-  });
-
-  const schema = {
-    company: "Name of target company",
-    industry: "Broad industry",
-    competitors: [
-      {
-        name: "Competitor Name",
-        ...cols
-      }
-    ],
-    summary: "2-3 sentence market overview"
-  };
-  
-  return JSON.stringify(schema, null, 2);
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function show(id) { document.getElementById(id).classList.remove('hidden'); }
-function hide(id) { document.getElementById(id).classList.add('hidden'); }
-function resetLog() { document.getElementById('activityLog').innerHTML = ''; }
-
-function addLog(text) {
-  const log = document.getElementById('activityLog');
-  const prev = log.querySelector('.log-line.active');
-  if (prev) { prev.classList.replace('active','done'); prev.querySelector('.log-dot').className = 'log-dot complete'; }
-  const line = document.createElement('div');
-  line.className = 'log-line active';
-  line.innerHTML = `<span class="log-dot spinning"></span><span>${text}</span>`;
-  log.appendChild(line);
-  log.scrollTop = log.scrollHeight;
-  document.getElementById('loadingSub').textContent = text;
-}
-
-function finalizeLog() {
-  const a = document.getElementById('activityLog').querySelector('.log-line.active');
-  if (a) { a.classList.replace('active','done'); a.querySelector('.log-dot').className = 'log-dot complete'; }
-}
-
-// ── Search ────────────────────────────────────────────────────────────────────
-let lastResults = null;
-let lastUsedColumns = [];
+function updateCol(i, f, v) { columnState[i][f] = v; persistSettings(); if (f==='format') renderColumnBuilder(); }
+function addColumn() { columnState.push({ id: Date.now(), name: "", format: "text", instructions: "", tags: "" }); renderColumnBuilder(); }
+function removeColumn(i) { columnState.splice(i, 1); renderColumnBuilder(); }
+function renderPresetsDropdown() { document.getElementById('presetSelect').innerHTML = '<option value="">-- Load Preset --</option>' + Object.keys(presetState).map(k => `<option value="${k}">${k}</option>`).join(''); }
 
 async function doSearch() {
   const query = document.getElementById('searchInput').value.trim();
   if (!query) return;
-  let count = document.getElementById('countSelect').value;
-  if (count === 'custom') {
-    count = document.getElementById('customCountInput').value.trim();
-    if (!count || isNaN(count) || count < 1) {
-      document.getElementById('errorBox').innerHTML = '<strong>Error:</strong> Please enter a valid custom number of competitors.';
-        show('errorBox');
-      return;
-    }
-  }
-  const provider = document.getElementById('providerSelect').value;
-  const model    = document.getElementById('modelSelect').value;
-  const prompt   = buildPrompt(count, query);
+  const count = document.getElementById('countSelect').value === 'custom' ? document.getElementById('customCountInput').value : document.getElementById('countSelect').value;
   
-  const schema = generateSchema();
-  lastUsedColumns = JSON.parse(JSON.stringify(columnState.filter(c => c.name.trim())));
+  const schemaProps = { company: "string", industry: "string", competitors: [{ name: "string" }], summary: "string" };
+  lastUsedColumns = columnState.filter(c => c.name.trim()).map(c => {
+    c._safeKey = c.name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+    schemaProps.competitors[0][c._safeKey] = c.format === 'tags' ? `Array from [${c.tags}]` : "string";
+    return c;
+  });
 
-  document.getElementById('searchBtn').disabled = true;
-  document.getElementById('searchBtn').textContent = 'Searching...';
-  hide('empty'); hide('results'); hide('errorBox');
-  resetLog(); show('loading');
-
-try {
-    addLog(`Sending request to local backend (${provider})...`);
-    
+  startLog('Researching competitors...'); addLog('Contacting provider...');
+  try {
     const res = await fetch('/api/research', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, count, provider, model, prompt, schema })
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, count, provider: document.getElementById('providerSelect').value, model: document.getElementById('modelSelect').value, prompt: `Find ${count} competitors for ${query}`, schema: JSON.stringify(schemaProps) })
     });
-
-    // 2. Safely parse JSON or handle raw text errors
-    let data;
-    const contentType = res.headers.get("content-type");
-    
-    if (contentType && contentType.indexOf("application/json") !== -1) {
-      data = await res.json();
-    } else {
-      const rawError = await res.text();
-      throw new Error(rawError || `Server error: ${res.status}`);
-    }
-
-    if (!res.ok) {
-      throw new Error(data.error || 'Backend processing failed.');
-    }
-
-    lastResults = data;
-    addLog('Done! Rendering results...');
-    finalizeLog();
-    hide('loading'); 
-    renderResults(data);
-
-  }catch (err) {
-    finalizeLog();
-    const errorBox = document.getElementById('errorBox');
-    // Display the specific message returned by the backend
-    errorBox.innerHTML = `<strong>Error:</strong> ${err.message}`;
-    hide('loading'); show('errorBox'); show('empty');
-  } finally {
-    document.getElementById('searchBtn').disabled = false;
-    document.getElementById('searchBtn').textContent = 'Research →';
-  }
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error);
+    lastResults = data; hide('loading');
+    renderResearchResults(data);
+  } catch(e) { document.getElementById('errorBox').innerHTML = e.message; show('errorBox'); hide('loading'); }
 }
 
-// ── Dynamic Render Results ────────────────────────────────────────────────────
-function renderResults(data) {
-  const el = document.getElementById('results');
-  const competitors = data.competitors || [];
-  
-  if (competitors.length === 0) {
-    el.innerHTML = '<div class="error fade-in">No competitors returned.</div>';
-    show('results');
-    return;
-  }
-
-  const thHTML = lastUsedColumns.map(col => `<th>${col.name}</th>`).join('');
-
-  let rows = competitors.map((c, i) => {
-    let tds = lastUsedColumns.map(col => {
-      const val = c[col._safeKey];
-      if (Array.isArray(val)) {
-        return `<td>${val.map(v => `<span class="chip">${v}</span>`).join('') || '—'}</td>`;
-      }
-      return `<td>${val !== undefined && val !== null ? val : '—'}</td>`;
-    }).join('');
-
-    return `<tr>
-      <td class="td-num">${i + 1}</td>
-      <td><div class="td-name">${c.name}</div></td>
-      ${tds}
-    </tr>`;
-  }).join('');
-
-  el.innerHTML = `
-    <div class="results-header fade-in">
-      <div>
-        <div class="results-company">${data.company}</div>
-        <div class="results-sub">
-          <span class="badge">${data.industry}</span>
-          <span class="count">${competitors.length} competitors found</span>
-        </div>
-      </div>
-      <button class="export-btn" onclick="exportExcel()">Export to Excel ↓</button>
-    </div>
-    ${data.summary ? `<p class="summary-text fade-in">${data.summary}</p>` : ''}
-    <div class="table-wrap fade-in">
-      <table>
-        <thead><tr>
-          <th>#</th><th>Company</th>${thHTML}
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
-  show('results');
+function renderResearchResults(data) {
+  const tableHtml = lastResults.competitors.map((c, i) => `<tr><td>${i+1}</td><td><b>${c.name}</b></td>${lastUsedColumns.map(col => `<td>${Array.isArray(c[col._safeKey]) ? c[col._safeKey].map(v => `<span class="chip">${v}</span>`).join('') : (c[col._safeKey] || '—')}</td>`).join('')}</tr>`).join('');
+  document.getElementById('resultsResearch').innerHTML = `
+    <div class="results-header fade-in"><div><div class="results-company">${data.company}</div></div><button class="export-btn" onclick="exportExcelResearch()">Export ↓</button></div>
+    <div class="table-wrap fade-in"><table><thead><tr><th>#</th><th>Company</th>${lastUsedColumns.map(c => `<th>${c.name}</th>`).join('')}</tr></thead><tbody>${tableHtml}</tbody></table></div>
+  `;
 }
 
-// ── Dynamic Export to Excel ───────────────────────────────────────────────────
-function exportExcel() {
-  if (!lastResults || typeof XLSX === 'undefined') return;
-  const { company, industry, summary = '', competitors = [] } = lastResults;
-  if (competitors.length === 0) return;
+function exportExcelResearch() {
+  if (!lastResults || !lastResults.competitors || lastResults.competitors.length === 0) return;
 
   const headerRow = ['#', 'Company', ...lastUsedColumns.map(col => col.name)];
-
-  const ws = XLSX.utils.aoa_to_sheet([
-    [`Competitor Research: ${company}`],
-    [`Industry: ${industry}`],
-    [`Summary: ${summary}`],
-    [],
-    headerRow,
-    ...competitors.map((c, i) => [
-      i + 1,
-      c.name,
-      ...lastUsedColumns.map(col => {
-        const val = c[col._safeKey];
-        return Array.isArray(val) ? val.join(', ') : (val || '');
-      })
-    ])
+  
+  const dataRows = lastResults.competitors.map((c, i) => [
+    i + 1,
+    c.name,
+    ...lastUsedColumns.map(col => {
+      const val = c[col._safeKey];
+      return Array.isArray(val) ? val.join(', ') : (val || '');
+    })
   ]);
 
-  ws['!cols'] = [{ wch:4 }, { wch:22 }, ...lastUsedColumns.map(() => ({ wch: 30 }))];
+  const ws = XLSX.utils.aoa_to_sheet([headerRow, ...dataRows]);
+  
+  // Auto-size columns slightly
+  ws['!cols'] = [{ wch: 4 }, { wch: 25 }, ...lastUsedColumns.map(() => ({ wch: 30 }))];
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Competitors');
-  XLSX.writeFile(wb, `competitors-${company.replace(/\s+/g,'-').toLowerCase()}.xlsx`);
-}
-
-// ── Init ──────────────────────────────────────────────────────────────────────
-async function fetchModels() {
-  try {
-    const res = await fetch('/api/models');
-    if (res.ok) {
-      MODELS = await res.json();
-    }
-  } catch (err) {
-    console.error("Failed to fetch dynamic models. Relying on backend fallbacks.");
-  }
-  populateModels(document.getElementById('providerSelect').value);
-}
-
-async function initApp() {
-  document.getElementById('customPrompt').value = DEFAULT_PROMPT;
-  populateModels('openai'); // Sets "Loading..." state
   
-  // Run network fetches concurrently
-  await Promise.all([
-    fetchModels(),
-    initColumns()
-  ]);
+  const safeFilename = lastResults.company ? lastResults.company.replace(/\s+/g, '-').toLowerCase() : 'data';
+  XLSX.writeFile(wb, `competitors-${safeFilename}.xlsx`);
 }
 
-initApp();
+// ── Tab 2: Verification Logic ─────────────────────────────────────────────────
+let uploadedExcelData = [];
+let lastVerifiedResults = [];
+let excelHeaders = [];
+let verifyColumnKeys = [];
+let verifyTargetCompany = "";
+
+document.getElementById('excelUpload').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, {type: 'array'});
+    uploadedExcelData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
+    if (uploadedExcelData.length > 0) {
+      excelHeaders = Object.keys(uploadedExcelData[0]);
+      renderDataPreview();
+      renderColumnMapping();
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+// Attach listener to update checkboxes when the anchor changes
+document.getElementById('companyColSelect').addEventListener('change', renderVerificationCheckboxes);
+
+function renderColumnMapping() {
+  // 1. Auto-detect the best primary column based on common naming conventions
+  const keywordMatches = ['company', 'name', 'competitor', 'organization', 'entity'];
+  let bestMatch = excelHeaders[0]; 
+  
+  for (let header of excelHeaders) {
+    if (keywordMatches.some(keyword => header.toLowerCase().includes(keyword))) {
+      bestMatch = header;
+      break;
+    }
+  }
+
+  // 2. Render dropdown and pre-select the detected match
+  document.getElementById('companyColSelect').innerHTML = excelHeaders.map(h => 
+    `<option value="${h}" ${h === bestMatch ? 'selected' : ''}>${h}</option>`
+  ).join('');
+
+  // 3. Trigger the checkbox rendering
+  renderVerificationCheckboxes();
+  show('mappingSection');
+}
+
+function renderVerificationCheckboxes() {
+  const selectedAnchor = document.getElementById('companyColSelect').value;
+  
+  document.getElementById('verifyColsList').innerHTML = excelHeaders.map(h => {
+    const isAnchor = h === selectedAnchor;
+    // Disable the anchor column so it cannot be verified/altered
+    return `
+      <label class="checkbox-label" style="${isAnchor ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+        <input type="checkbox" class="verify-cb" value="${h}" ${isAnchor ? 'disabled' : ''}> 
+        ${h} ${isAnchor ? '(Anchor)' : ''}
+      </label>
+    `;
+  }).join('');
+}
+
+async function doVerify() {
+  verifyTargetCompany = document.getElementById('companyColSelect').value;
+  verifyColumnKeys = Array.from(document.querySelectorAll('.verify-cb:checked')).map(cb => cb.value);
+  
+  const targetCompany = document.getElementById('targetCompanyInput').value.trim();
+  const checkCompetitor = document.getElementById('cbVerifyCompetitor').checked;
+  const rankCompetitor = document.getElementById('cbRankCompetitor').checked;
+
+  if (!verifyTargetCompany || verifyColumnKeys.length === 0) {
+    alert("Select a primary entity column and at least one data column to verify."); return;
+  }
+  if ((checkCompetitor || rankCompetitor) && !targetCompany) {
+    alert("Please enter a Target Company to perform the advanced analysis against."); return;
+  }
+
+  const inputData = uploadedExcelData.map(row => {
+    let obj = { [verifyTargetCompany]: row[verifyTargetCompany] };
+    verifyColumnKeys.forEach(k => obj[k] = row[k]);
+    return obj;
+  });
+
+  const schemaProps = { "entity_name": "string matching input exactly" };
+  
+  if (checkCompetitor) {
+    schemaProps["is_competitor"] = "boolean (true if they are a direct competitor to the target company, false otherwise)";
+    schemaProps["competitor_rationale"] = "Brief 1-sentence explanation of their competitor status";
+  }
+  if (rankCompetitor) {
+    schemaProps["competition_score"] = "Number from 1 to 10 indicating threat level (10 = highest direct threat)";
+  }
+
+  verifyColumnKeys.forEach(k => {
+    const safeKey = k.replace(/[^a-zA-Z0-9]/g, "_");
+    schemaProps[`${safeKey}_verified`] = "Verified/updated data (string)";
+    schemaProps[`${safeKey}_status`] = "Must be strictly one of: 'unchanged', 'corrected', 'filled'";
+  });
+  
+  const schema = JSON.stringify({ verified_records: [schemaProps] });
+  
+  let customPrompt = "Review the provided dataset. Correct inaccurate entries, fill missing blanks, and flag status.";
+  if (checkCompetitor || rankCompetitor) {
+    customPrompt += `\nAdditionally, evaluate each entity against the target company: "${targetCompany}".`;
+    if (checkCompetitor) customPrompt += " Determine if they are currently a direct competitor.";
+    if (rankCompetitor) customPrompt += " Assign a competition threat score from 1-10.";
+  }
+
+  startLog('Verifying Datasets...'); addLog('Processing with AI provider...');
+  hide('resultsVerify');
+
+  try {
+    const res = await fetch('/api/verify', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: document.getElementById('providerSelect').value,
+        model: document.getElementById('modelSelect').value,
+        prompt: customPrompt,
+        schema: schema,
+        input_data: JSON.stringify(inputData)
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    hide('loading');
+    lastVerifiedResults = data.verified_records;
+    renderVerifyResults(data.verified_records);
+  } catch(e) { document.getElementById('errorBox').innerHTML = e.message; show('errorBox'); hide('loading'); }
+}
+
+function renderVerifyResults(records) {
+  if (!records || records.length === 0) return;
+  
+  const checkCompetitor = document.getElementById('cbVerifyCompetitor').checked;
+  const rankCompetitor = document.getElementById('cbRankCompetitor').checked;
+
+  if (rankCompetitor) {
+    records.sort((a, b) => (b.competition_score || 0) - (a.competition_score || 0));
+  }
+
+  let ths = `<th>Entity</th>`;
+  if (checkCompetitor) ths += `<th>Status</th>`;
+  if (rankCompetitor) ths += `<th>Threat Score</th>`;
+  verifyColumnKeys.forEach(k => { ths += `<th>${k} (Verified)</th>`; });
+
+  const rowsHtml = records.map((rec, i) => {
+    let tds = `<td><div class="results-company" style="font-size:15px; margin:0;">${rec.entity_name}</div></td>`;
+    
+    if (checkCompetitor) {
+      const isComp = rec.is_competitor;
+      const rat = rec.competitor_rationale || '';
+      const badgeClass = isComp ? 'status-corrected' : 'status-unchanged'; 
+      const badgeText = isComp ? 'COMPETITOR' : 'NOT COMPETITOR';
+      tds += `<td><span class="status-badge ${badgeClass}">${badgeText}</span><div style="font-size:11px; color:#666; margin-top:6px;">${rat}</div></td>`;
+    }
+
+    if (rankCompetitor) {
+      const score = rec.competition_score || 'N/A';
+      tds += `<td><div style="font-size: 16px; font-weight: 700;">${score}<span style="font-size: 12px; color: #888;">/10</span></div></td>`;
+    }
+
+    verifyColumnKeys.forEach(k => {
+      const safeKey = k.replace(/[^a-zA-Z0-9]/g, "_");
+      const val = rec[`${safeKey}_verified`];
+      const stat = rec[`${safeKey}_status`];
+      let statClass = 'status-unchanged';
+      if(stat === 'corrected') statClass = 'status-corrected';
+      if(stat === 'filled') statClass = 'status-filled';
+      tds += `<td>
+        <div style="margin-bottom:6px;">${val || '—'}</div>
+        <span class="status-badge ${statClass}">${stat || 'unchanged'}</span>
+      </td>`;
+    });
+    return `<tr>${tds}</tr>`;
+  }).join('');
+
+  document.getElementById('resultsVerify').innerHTML = `
+    <div class="results-header fade-in">
+      <div class="results-company">Verification Complete</div>
+      <button class="export-btn" onclick="exportExcelVerify()">Export Verified Data ↓</button>
+    </div>
+    <div class="table-wrap fade-in">
+      <table><thead><tr>${ths}</tr></thead><tbody>${rowsHtml}</tbody></table>
+    </div>
+  `;
+  show('resultsVerify');
+}
+
+function exportExcelVerify() {
+  if (!lastVerifiedResults || lastVerifiedResults.length === 0) return;
+
+  const checkCompetitor = document.getElementById('cbVerifyCompetitor').checked;
+  const rankCompetitor = document.getElementById('cbRankCompetitor').checked;
+
+  const headerRow = ['Entity'];
+  if (checkCompetitor) { headerRow.push('Competitor Status', 'Rationale'); }
+  if (rankCompetitor) { headerRow.push('Threat Score'); }
+  
+  verifyColumnKeys.forEach(k => {
+    headerRow.push(`${k} (Verified)`);
+    headerRow.push(`${k} (Change Status)`);
+  });
+
+  const dataRows = lastVerifiedResults.map(rec => {
+    const row = [rec.entity_name];
+    
+    if (checkCompetitor) {
+      row.push(rec.is_competitor ? 'COMPETITOR' : 'NOT COMPETITOR');
+      row.push(rec.competitor_rationale || '');
+    }
+    if (rankCompetitor) {
+      row.push(rec.competition_score || 'N/A');
+    }
+
+    verifyColumnKeys.forEach(k => {
+      const safeKey = k.replace(/[^a-zA-Z0-9]/g, "_");
+      row.push(rec[`${safeKey}_verified`] || '');
+      row.push(rec[`${safeKey}_status`] || 'unchanged');
+    });
+    
+    return row;
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet([headerRow, ...dataRows]);
+  
+  const colWidths = [{ wch: 25 }];
+  if (checkCompetitor) colWidths.push({ wch: 18 }, { wch: 45 });
+  if (rankCompetitor) colWidths.push({ wch: 15 });
+  verifyColumnKeys.forEach(() => colWidths.push({ wch: 35 }, { wch: 15 }));
+  ws['!cols'] = colWidths;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Verified Data');
+  
+  const safeTarget = verifyTargetCompany ? verifyTargetCompany.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase() : 'data';
+  XLSX.writeFile(wb, `verified-${safeTarget}.xlsx`);
+}
+
+// ── Startup ───────────────────────────────────────────────────────────────────
+fetchModels(); initColumns(); document.getElementById('customPrompt').value = "Find {count} competitors for {query}.";
+function toggleCustomCount() { document.getElementById('countSelect').value === 'custom' ? show('customCountInput') : hide('customCountInput'); }
+function toggleAdvanced() { document.getElementById('advancedSection').classList.toggle('hidden'); }
+
+function renderDataPreview() {
+  const previewContainer = document.getElementById('dataPreviewContainer');
+  if (!uploadedExcelData || uploadedExcelData.length === 0) return;
+
+  const previewData = uploadedExcelData.slice(0, 5); 
+  
+  const ths = excelHeaders.map(h => `<th>${h}</th>`).join('');
+  const rows = previewData.map(row => {
+    const tds = excelHeaders.map(h => `<td>${row[h] !== undefined ? row[h] : ''}</td>`).join('');
+    return `<tr>${tds}</tr>`;
+  }).join('');
+
+  previewContainer.innerHTML = `
+    <div class="table-wrap fade-in" style="max-height: 250px; overflow-x: auto;">
+      <table style="white-space: nowrap; min-width: 100%;">
+        <thead><tr>${ths}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="font-size: 12px; color: #888; margin-top: 10px;">
+      Showing first ${previewData.length} rows out of ${uploadedExcelData.length} total rows.
+    </div>
+  `;
+  show('dataPreviewSection');
+}
 </script>
 </body>
 </html>
