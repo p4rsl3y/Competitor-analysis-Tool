@@ -201,6 +201,62 @@ def find_free_port(start_port):
             port += 1
     return start_port
 
+@app.route('/api/verify', methods=['POST'])
+def verify_data():
+    """Handles verification of existing dataset using the AI providers."""
+    data = request.json
+    provider = data.get('provider', 'openai')
+    
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
+
+    if provider == 'openai' and not openai_key:
+        return jsonify({"error": "OpenAI API Key missing. Please add OPENAI_API_KEY to your .env file."}), 400
+    if provider == 'anthropic' and not anthropic_key:
+        return jsonify({"error": "Anthropic API Key missing. Please add ANTHROPIC_API_KEY to your .env file."}), 400
+
+    model = data.get('model')
+    prompt = data.get('prompt')
+    schema = data.get('schema')
+    input_data = data.get('input_data')
+    
+    system_msg = f"""You are an expert data verification analyst. You MUST output ONLY raw JSON, with no markdown formatting. 
+    You will receive a list of companies and their existing data attributes. Your task is to verify the selected fields.
+    If the data is accurate, retain it. If it is inaccurate, correct it. If it is missing, research and fill it in.
+    You must use exactly this JSON structure:
+    {schema}"""
+    
+    user_content = f"Input Data to Verify:\n{input_data}\n\nInstructions:\n{prompt}"
+    
+    try:
+        if provider == 'openai':
+            client = OpenAI(api_key=openai_key)
+            response = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "system", "content": system_msg}, {"role": "user", "content": user_content}]
+            )
+            raw_text = response.choices[0].message.content
+        else:
+            client = Anthropic(api_key=anthropic_key)
+            message = client.messages.create(
+                model=model,
+                max_tokens=4000,
+                system=system_msg,
+                messages=[{"role": "user", "content": user_content}]
+            )
+            raw_text = message.content[0].text
+            
+        parsed_data = extract_json(raw_text)
+        return jsonify(parsed_data)
+        
+    except Exception as e:
+        error_msg = str(e)
+        if "401" in error_msg or "invalid_api_key" in error_msg or "authentication" in error_msg.lower():
+            friendly_name = "OpenAI" if provider == 'openai' else "Anthropic"
+            return jsonify({"error": f"Invalid {friendly_name} API Key. Check the key in your .env file."}), 401
+            
+        return jsonify({"error": error_msg, "raw_response": raw_text if 'raw_text' in locals() else None}), 500
+
 if __name__ == '__main__':
     import os
     # Only calculate the port once to prevent the reloader from hopping

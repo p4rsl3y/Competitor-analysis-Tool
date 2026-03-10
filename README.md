@@ -36,7 +36,7 @@ python app.py
 ```
 Visit <http://127.0.0.1:3030> in your browser.
 
-# 🛠 Features
+# Features
 Dynamic Column Builder: Define specific data points (e.g., Pricing, Size, Tech Stack) for the AI to find.
 
 Multi-Provider Support: Switch between OpenAI (GPT-4o, o1, o3) and Anthropic (Claude 3.7/3.5) dynamically.
