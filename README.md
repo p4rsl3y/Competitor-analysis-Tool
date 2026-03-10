@@ -44,3 +44,5 @@ Multi-Provider Support: Switch between OpenAI (GPT-4o, o1, o3) and Anthropic (Cl
 Custom Research Prompts: Advanced mode allows users to override the base prompt while maintaining the data schema.
 
 Export to Excel: One-click generation of formatted .xlsx reports for research documentation.
+
+Load competitor lists from excel filetypes to compare and analyse old data
