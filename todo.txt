@@ -1,0 +1,5 @@
+- Improve Comparison tool
+- Add one on one comparison tool
+- Make usable by multiple people, hostable on a server, etc
+- Add dashboard
+- perp. storage?

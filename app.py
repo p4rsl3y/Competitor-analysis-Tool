@@ -229,9 +229,14 @@ def verify_data():
     if provider == 'anthropic' and not get_anthropic_client():
         return jsonify({"error": "Anthropic API Key missing."}), 400
     
-    system_msg = f"""You are an expert data verification analyst. You MUST output ONLY raw JSON, with no markdown formatting. 
-    You will receive a list of companies and their existing data attributes. Your task is to verify the selected fields.
-    If the data is accurate, retain it. If it is inaccurate, correct it. If it is missing, research and fill it in.
+    system_msg = f"""You are an expert data verification analyst. You MUST output ONLY raw JSON.
+
+    INSTRUCTION ON CATEGORICAL INTEGRITY:
+    1. First, analyze each column to see if the user is using a specific tagging pattern or a limited set of terms (e.g., 'RoW', 'EU', 'DACH').
+    2. If a pattern is detected, do NOT 'correct' a value if it logically fits into that existing term, even if a more specific factual value exists (e.g., if the column uses 'RoW', do not change 'RoW' to 'USA').
+    3. Only correct a value if it is fundamentally false (e.g., a company listed in 'Nordics' that is actually based in 'Africa').
+    4. If the original data is blank, research the company and fill it using the detected category pattern.
+
     You must use exactly this JSON structure:
     {schema_str}"""
     

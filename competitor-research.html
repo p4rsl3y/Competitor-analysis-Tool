@@ -25,6 +25,23 @@
   .tab-content { display: none; }
   .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
 
+  /* Compare Tab Styles */
+  .compare-card { background: #fcfcfc; border: 1px solid #e8e8e8; padding: 12px; border-radius: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .compare-header { display: flex; gap: 12px; align-items: center; width: 100%; }
+  .compare-header input { flex: 1; padding: 10px 14px; font-size: 13px; border-radius: 6px; }
+  .btn-expand { background: none; border: 1px solid #e8e8e8; border-radius: 6px; width: 38px; height: 38px; cursor: pointer; color: #555; transition: background 0.2s; }
+  .btn-expand:hover { background: #f0f0f0; }
+  .compare-body { display: none; padding-top: 8px; border-top: 1px dashed #e8e8e8; margin-top: 4px; }
+  .compare-body.expanded { display: block; animation: fadeIn 0.2s ease; }
+  .compare-body textarea { width: 100%; min-height: 80px; font-size: 13px; padding: 10px; }
+
+  /* Compare Table Styles */
+  .vs-table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+  .vs-table th, .vs-table td { border: 1px solid #e8e8e8; padding: 16px; vertical-align: top; }
+  .vs-table th { background: #f6f6f6; text-align: center; font-size: 16px; font-weight: 800; color: #111; text-transform: none; letter-spacing: normal; border-bottom: 2px solid #111; }
+  .vs-table .category-row { background: #fafafa; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: #ff1400; text-align: center; }
+  .vs-winner { font-weight: 700; color: #16a34a; margin-top: 8px; display: inline-block; background: #f0fdf4; padding: 4px 8px; border-radius: 6px; font-size: 12px; }
+
   /* Settings Section */
   .settings-section { background: #fff; border: 1px solid #e8e8e8; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: flex; flex-direction: column; gap: 16px; }
   .settings-row { display: flex; gap: 24px; flex-wrap: wrap; }
@@ -161,6 +178,7 @@
   <div class="tabs-nav">
     <button class="tab-btn active" onclick="switchTab('research')">Competitor Discovery</button>
     <button class="tab-btn" onclick="switchTab('verify')">Data Verification</button>
+    <button class="tab-btn" onclick="switchTab('compare')">1-on-1 Compare</button>
     <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
   </div>
 
@@ -241,6 +259,27 @@
 
     <div id="resultsVerify"></div>
   </div>
+
+  <div id="tab-compare" class="tab-content">
+  <div class="settings-section">
+    <div class="mapping-title">1. Select Competitors</div>
+    <div class="search-row" style="margin-bottom: 24px;">
+      <input type="text" id="compAInput" placeholder="Company A (e.g., Stripe)" style="font-weight: 700;">
+      <div style="font-size: 14px; font-weight: 700; color: #888; padding: 0 10px;">VS</div>
+      <input type="text" id="compBInput" placeholder="Company B (e.g., Adyen)" style="font-weight: 700;">
+    </div>
+
+    <div class="col-header-row">
+      <span class="provider-label">Comparison Categories</span>
+    </div>
+    <div class="col-builder-container" id="compareColBuilder"></div>
+    <button class="btn-add" onclick="addCompareCategory()">+ Add Category</button>
+    
+    <button class="search-btn-main" onclick="doCompare()" style="width: 100%; margin-top: 16px;">Run 1-on-1 Comparison →</button>
+  </div>
+  
+  <div id="resultsCompare"></div>
+</div>
 
   <div id="tab-settings" class="tab-content">
     <div class="settings-section">
@@ -533,7 +572,8 @@ async function doVerify() {
   
   const schema = JSON.stringify({ verified_records: [schemaProps] });
   
-  let customPrompt = "Review the provided dataset. Correct inaccurate entries, fill missing blanks, and flag status.";
+  let customPrompt = `Review the provided dataset. Maintain the specific terminology and tagging conventions used in the original data. 
+  If a column appears to use a standardized set of tags, ensure all corrections or filled blanks use those exact tags.`;
   if (checkCompetitor || rankCompetitor) {
     customPrompt += `\nAdditionally, evaluate each entity against the target company: "${targetCompany}".`;
   }
@@ -609,7 +649,14 @@ function renderVerifyResults(records) {
       tds += `<td><span class="status-badge ${badgeClass}">${rec.is_competitor ? 'COMPETITOR' : 'NOT COMPETITOR'}</span></td>`;
     }
 
-    if (rankComp) tds += `<td><b>${rec.competition_score || 'N/A'}</b>/10</td>`;
+    if (rankComp) {
+      // Ensure the score is a number and clamp it between 0 and 10
+      let score = parseFloat(rec.competition_score) || 0;
+      let clampedScore = Math.min(Math.max(score, 0), 10);
+      
+      // Display with one decimal point for precision (e.g., 8.5/10)
+      tds += `<td><div style="font-size: 15px;"><b>${clampedScore.toFixed(1)}</b><span style="color:#888; font-size:12px;">/10</span></div></td>`;
+    }
 
     verifyColumnKeys.forEach(k => {
       const safeKey = k.replace(/[^a-zA-Z0-9]/g, "_");
@@ -653,7 +700,8 @@ function exportExcelVerify() {
       row.push(rec.competitor_rationale || '');
     }
     if (rankCompetitor) {
-      row.push(rec.competition_score || 'N/A');
+      let score = parseFloat(rec.competition_score) || 0;
+      row.push(Math.min(Math.max(score, 0), 10).toFixed(1));
     }
 
     verifyColumnKeys.forEach(k => {
@@ -747,6 +795,132 @@ function parseRowSelection(input, maxRows) {
     : Array.from(indices);
 
   return finalIndices.filter(i => !exclusions.has(i));
+}
+  // ── Tab 3: Comparison Logic ─────────────────────────────────────────────────
+  let compareCategories = [
+    { id: 1, name: "Pricing", prompt: "Compare their pricing tiers, transparency, and overall value for money.", expanded: false },
+    { id: 2, name: "Core Features", prompt: "Compare their primary capabilities and identify any unique selling points (USPs) each has over the other.", expanded: false }
+  ];
+
+  function renderCompareCategories() {
+    document.getElementById('compareColBuilder').innerHTML = compareCategories.map((cat, index) => `
+      <div class="compare-card">
+        <div class="compare-header">
+          <input type="text" placeholder="Category Name" value="${cat.name}" onchange="updateCompareCat(${index}, 'name', this.value)">
+          <button class="btn-expand" onclick="toggleCompareCat(${index})" title="Edit Prompt">
+            ${cat.expanded ? '▲' : '▼'}
+          </button>
+          <button class="btn-icon" onclick="removeCompareCat(${index})">×</button>
+        </div>
+        <div class="compare-body ${cat.expanded ? 'expanded' : ''}">
+          <div class="provider-label" style="margin-bottom: 4px;">Custom Instructions / Prompt</div>
+          <textarea onchange="updateCompareCat(${index}, 'prompt', this.value)" placeholder="Specific instructions for this category...">${cat.prompt}</textarea>
+        </div>
+      </div>
+    `).join('');
+  }
+
+
+  function updateCompareCat(i, field, value) { compareCategories[i][field] = value; if(field !== 'expanded') renderCompareCategories(); }
+  function toggleCompareCat(i) { compareCategories[i].expanded = !compareCategories[i].expanded; renderCompareCategories(); }
+  function addCompareCategory() { compareCategories.push({ id: Date.now(), name: "", prompt: "", expanded: true }); renderCompareCategories(); }
+  function removeCompareCat(i) { compareCategories.splice(i, 1); renderCompareCategories(); }
+
+  // Initialize this when the page loads
+  document.addEventListener('DOMContentLoaded', () => { renderCompareCategories(); });
+  
+  // Main comparison function 
+  async function doCompare() {
+  const compA = document.getElementById('compAInput').value.trim();
+  const compB = document.getElementById('compBInput').value.trim();
+  
+  if (!compA || !compB) return alert("Please enter both Company A and Company B.");
+  if (compareCategories.filter(c => c.name.trim()).length === 0) return alert("Add at least one comparison category.");
+
+  // Build strict JSON schema and specific instructions based on categories
+  const schemaProps = { "comparison_summary": "string" };
+  let customInstructions = `Perform a highly detailed 1-on-1 comparison between ${compA} and ${compB}.\n\n`;
+
+  compareCategories.forEach(c => {
+    if (!c.name.trim()) return;
+    const safeKey = c.name.replace(/[^a-zA-Z0-9]/g, "_");
+    
+    customInstructions += `Category: ${c.name}\nInstructions: ${c.prompt}\n\n`;
+    
+    schemaProps[safeKey] = {
+      [`${compA.replace(/[^a-zA-Z0-9]/g, "")}_details`]: "Specific analysis for this company",
+      [`${compB.replace(/[^a-zA-Z0-9]/g, "")}_details`]: "Specific analysis for this company",
+      "verdict": `Strictly state either '${compA}', '${compB}', or 'Tie'`,
+      "rationale": "1-sentence explanation of the verdict"
+    };
+  });
+
+  startLog(`Comparing ${compA} vs ${compB}...`);
+  hide('resultsCompare');
+
+  try {
+    const res = await fetch('/api/research', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: document.getElementById('providerSelect').value,
+        model: document.getElementById('modelSelect').value,
+        prompt: customInstructions,
+        schema: JSON.stringify(schemaProps)
+      })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    
+    hide('loading');
+    renderCompareResults(data, compA, compB);
+  } catch(e) { 
+    document.getElementById('errorBox').innerHTML = e.message; show('errorBox'); hide('loading'); 
+  }
+}
+// Render the comparison results in a side-by-side table format
+function renderCompareResults(data, compA, compB) {
+  const keyA = compA.replace(/[^a-zA-Z0-9]/g, "");
+  const keyB = compB.replace(/[^a-zA-Z0-9]/g, "");
+
+  let rowsHtml = '';
+  compareCategories.forEach(c => {
+    if (!c.name.trim()) return;
+    const safeKey = c.name.replace(/[^a-zA-Z0-9]/g, "_");
+    const catData = data[safeKey];
+    if (!catData) return;
+
+    rowsHtml += `
+      <tr><td colspan="2" class="category-row">${c.name}</td></tr>
+      <tr>
+        <td>
+          <div style="margin-bottom: 8px;">${catData[`${keyA}_details`] || 'N/A'}</div>
+          ${catData.verdict === compA ? `<span class="vs-winner">🏆 Winner</span>` : ''}
+          ${catData.verdict === 'Tie' ? `<span class="vs-winner" style="background:#e0e0e0; color:#555;">🤝 Tie</span>` : ''}
+        </td>
+        <td>
+          <div style="margin-bottom: 8px;">${catData[`${keyB}_details`] || 'N/A'}</div>
+          ${catData.verdict === compB ? `<span class="vs-winner">🏆 Winner</span>` : ''}
+          ${catData.verdict === 'Tie' ? `<span class="vs-winner" style="background:#e0e0e0; color:#555;">🤝 Tie</span>` : ''}
+        </td>
+      </tr>
+      <tr><td colspan="2" style="font-size: 12px; color: #666; background: #fafafa; border-top: none;"><b>Verdict Rationale:</b> ${catData.rationale || 'N/A'}</td></tr>
+    `;
+  });
+
+  document.getElementById('resultsCompare').innerHTML = `
+    <div class="settings-section fade-in" style="background: #111; color: #fff; text-align: center; margin-bottom: 24px;">
+      <h2 style="font-size: 24px; margin-bottom: 8px;">${compA} <span style="color:#ff1400; font-weight:400;">vs</span> ${compB}</h2>
+      <p style="font-size: 14px; color: #ccc;">${data.comparison_summary || 'Comparison complete.'}</p>
+    </div>
+    <div class="table-wrap fade-in">
+      <table class="vs-table">
+        <thead><tr><th style="width: 50%;">${compA}</th><th style="width: 50%;">${compB}</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+  `;
+  show('resultsCompare');
 }
 </script>
 </body>
