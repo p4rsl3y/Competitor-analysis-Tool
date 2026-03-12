@@ -2,19 +2,44 @@ import os
 import json
 import re
 import socket
+import threading
+import time
 from flask import Flask, request, jsonify, send_file
 from dotenv import load_dotenv
 from openai import OpenAI
 from anthropic import Anthropic
 
-# Load keys from the .env file
 load_dotenv()
 
 app = Flask(__name__)
 SETTINGS_FILE = 'settings.json'
 
+# Concurrency lock for file I/O
+settings_lock = threading.Lock()
+
+# Cache for model fetching
+model_cache = {"data": None, "timestamp": 0}
+CACHE_TTL = 3600  # 1 hour
+
+# Lazy-loaded clients
+clients = {"openai": None, "anthropic": None}
+
+def get_openai_client():
+    if not clients["openai"]:
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if api_key:
+            clients["openai"] = OpenAI(api_key=api_key)
+    return clients["openai"]
+
+def get_anthropic_client():
+    if not clients["anthropic"]:
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if api_key:
+            clients["anthropic"] = Anthropic(api_key=api_key)
+    return clients["anthropic"]
+
 def extract_json(raw_text):
-    """Extracts and parses JSON from a raw LLM response."""
+    """Extracts and parses JSON from a raw LLM response using precise bounding."""
     cleaned = re.sub(r'```json|```', '', raw_text, flags=re.IGNORECASE).strip()
     match = re.search(r'\{[\s\S]*\}', cleaned)
     if not match:
@@ -26,9 +51,7 @@ def format_model_label(model_id):
     date_str = ""
     base_name = model_id
     
-    # Extract OpenAI format (YYYY-MM-DD)
     dash_date = re.search(r'-(\d{4}-\d{2}-\d{2})$', model_id)
-    # Extract Anthropic format (YYYYMMDD)
     solid_date = re.search(r'-(\d{8})$', model_id)
     
     if dash_date:
@@ -39,7 +62,6 @@ def format_model_label(model_id):
         date_str = f"{d[:4]}-{d[4:6]}-{d[6:]}"
         base_name = model_id[:solid_date.start()]
         
-    # Reformat Claude models flexibly (supports both claude-3-5-sonnet AND claude-sonnet-4-6)
     if base_name.startswith('claude'):
         version_match = re.search(r'-(\d+(?:-\d+)?)(?:-|$)', base_name)
         tier_match = re.search(r'-(sonnet|opus|haiku)', base_name)
@@ -51,7 +73,6 @@ def format_model_label(model_id):
         else:
             base_name = " ".join([w.capitalize() if w.islower() else w for w in base_name.split('-')])
     else:
-        # Handle OpenAI models
         replacements = {
             'gpt-4o-mini': 'GPT-4o mini',
             'gpt-4o': 'GPT-4o',
@@ -72,127 +93,117 @@ def format_model_label(model_id):
 
 @app.route('/')
 def index():
-    """Serves the frontend HTML file."""
     return send_file('competitor-research.html')
 
 @app.route('/api/settings', methods=['GET', 'POST'])
 def handle_settings():
-    """Handles saving and loading the column configurations to a local JSON file."""
+    """Handles saving and loading the column configurations safely."""
     if request.method == 'POST':
-        with open(SETTINGS_FILE, 'w') as f:
-            json.dump(request.json, f, indent=2)
+        with settings_lock:
+            with open(SETTINGS_FILE, 'w') as f:
+                json.dump(request.json, f, indent=2)
         return jsonify({"status": "success"})
     
     if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE, 'r') as f:
-            return jsonify(json.load(f))
+        with settings_lock:
+            with open(SETTINGS_FILE, 'r') as f:
+                return jsonify(json.load(f))
             
-    # Return empty defaults if the file does not exist yet
     return jsonify({"columns": [], "presets": {}})
 
 @app.route('/api/models', methods=['GET'])
 def get_models():
-    """Fetches and filters available text models dynamically from the providers."""
+    """Fetches text models utilizing an in-memory TTL cache."""
+    current_time = time.time()
+    if model_cache["data"] and (current_time - model_cache["timestamp"] < CACHE_TTL):
+        return jsonify(model_cache["data"])
+
     models = {"openai": [], "anthropic": []}
 
-    # Fetch OpenAI Models
     try:
-        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-        oai_data = client.models.list()
-        
-        # Filter for standard chat completion models, ignoring audio/vision/embedding utilities
-        chat_models = [
-            m.id for m in oai_data.data 
-            if ('gpt-4' in m.id or 'o1' in m.id or 'o3' in m.id) 
-            and 'realtime' not in m.id and 'audio' not in m.id
-        ]
-        chat_models.sort(reverse=True)
-        # Apply the new formatting function here
-        models["openai"] = [{"value": m, "label": format_model_label(m)} for m in chat_models]
+        client = get_openai_client()
+        if client:
+            oai_data = client.models.list()
+            chat_models = [
+                m.id for m in oai_data.data 
+                if ('gpt-4' in m.id or 'o1' in m.id or 'o3' in m.id) 
+                and 'realtime' not in m.id and 'audio' not in m.id
+            ]
+            chat_models.sort(reverse=True)
+            models["openai"] = [{"value": m, "label": format_model_label(m)} for m in chat_models]
     except Exception:
         models["openai"] = [
             {"value": "gpt-4o", "label": "GPT-4o (Fallback)"},
-            {"value": "gpt-4o-mini", "label": "GPT-4o mini (Fallback)"},
-            {"value": "o3-mini", "label": "o3-mini (Fallback)"}
+            {"value": "gpt-4o-mini", "label": "GPT-4o mini (Fallback)"}
         ]
 
-    # Fetch Anthropic Models
     try:
-        client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-        ant_data = client.models.list()
-        
-        c_models = [m.id for m in ant_data.data if 'claude' in m.id]
-        c_models.sort(reverse=True)
-        # Apply the new formatting function here
-        models["anthropic"] = [{"value": m, "label": format_model_label(m)} for m in c_models]
+        client = get_anthropic_client()
+        if client:
+            ant_data = client.models.list()
+            c_models = [m.id for m in ant_data.data if 'claude' in m.id]
+            c_models.sort(reverse=True)
+            models["anthropic"] = [{"value": m, "label": format_model_label(m)} for m in c_models]
     except Exception:
         models["anthropic"] = [
             {"value": "claude-3-7-sonnet-20250219", "label": "Claude 3.7 Sonnet (Fallback)"},
-            {"value": "claude-3-5-sonnet-20241022", "label": "Claude 3.5 Sonnet (Fallback)"},
-            {"value": "claude-3-5-haiku-20241022", "label": "Claude 3.5 Haiku (Fallback)"}
+            {"value": "claude-3-5-sonnet-20241022", "label": "Claude 3.5 Sonnet (Fallback)"}
         ]
 
+    model_cache["data"] = models
+    model_cache["timestamp"] = current_time
     return jsonify(models)
 
 @app.route('/api/research', methods=['POST'])
 def research():
-    """Handles requests from the frontend and calls the AI providers."""
     data = request.json
     provider = data.get('provider', 'openai')
-    
-    # 1. Check for keys before proceeding
-    openai_key = os.environ.get("OPENAI_API_KEY")
-    anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
-
-    if provider == 'openai' and not openai_key:
-        return jsonify({"error": "OpenAI API Key missing. Please add OPENAI_API_KEY to your .env file."}), 400
-        
-    if provider == 'anthropic' and not anthropic_key:
-        return jsonify({"error": "Anthropic API Key missing. Please add ANTHROPIC_API_KEY to your .env file."}), 400
     model = data.get('model')
     prompt = data.get('prompt')
     schema = data.get('schema')
     
+    # Properly serialize the schema
+    schema_str = json.dumps(schema) if isinstance(schema, dict) else schema
+    
+    if provider == 'openai' and not get_openai_client():
+        return jsonify({"error": "OpenAI API Key missing."}), 400
+    if provider == 'anthropic' and not get_anthropic_client():
+        return jsonify({"error": "Anthropic API Key missing."}), 400
+    
     system_msg = f"""You are a competitive intelligence analyst. You MUST output ONLY raw JSON, with no markdown formatting. 
-    The JSON schema below contains instructions in its value fields. You must REPLACE these instruction strings with the actual researched data for each company.
+    The JSON schema below contains instructions in its value fields. You must REPLACE these instruction strings with the actual researched data.
     You must use exactly this JSON structure:
-    {schema}"""
+    {schema_str}"""
     
     try:
         if provider == 'openai':
-            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+            client = get_openai_client()
+            # Enforce native JSON output format
             response = client.chat.completions.create(
                 model=model,
+                response_format={ "type": "json_object" },
                 messages=[{"role": "system", "content": system_msg}, {"role": "user", "content": prompt}]
             )
             raw_text = response.choices[0].message.content
         else:
-            client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+            client = get_anthropic_client()
             message = client.messages.create(
                 model=model,
-                max_tokens=2000,
+                max_tokens=4000,
                 system=system_msg,
                 messages=[{"role": "user", "content": prompt}]
             )
             raw_text = message.content[0].text
             
-        parsed_data = extract_json(raw_text)
-        return jsonify(parsed_data)
+        return jsonify(extract_json(raw_text))
         
     except Exception as e:
         error_msg = str(e)
-        
-        # Intercept 401 / Authentication errors for a cleaner user experience
-        if "401" in error_msg or "invalid_api_key" in error_msg or "authentication" in error_msg.lower():
-            friendly_name = "OpenAI" if provider == 'openai' else "Anthropic"
-            return jsonify({
-                "error": f"Invalid {friendly_name} API Key. Please check the key in your .env file and ensure it is copied correctly."
-            }), 401
-            
-        return jsonify({"error": error_msg, "raw_response": raw_text if 'raw_text' in locals() else None}), 500
+        if "401" in error_msg or "invalid_api_key" in error_msg:
+            return jsonify({"error": "Invalid API Key. Please check your .env file."}), 401
+        return jsonify({"error": error_msg}), 500
 
 def find_free_port(start_port):
-    """Checks for the next available port starting from start_port."""
     port = start_port
     while port < start_port + 10:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -203,41 +214,40 @@ def find_free_port(start_port):
 
 @app.route('/api/verify', methods=['POST'])
 def verify_data():
-    """Handles verification of existing dataset using the AI providers."""
     data = request.json
     provider = data.get('provider', 'openai')
-    
-    openai_key = os.environ.get("OPENAI_API_KEY")
-    anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
-
-    if provider == 'openai' and not openai_key:
-        return jsonify({"error": "OpenAI API Key missing. Please add OPENAI_API_KEY to your .env file."}), 400
-    if provider == 'anthropic' and not anthropic_key:
-        return jsonify({"error": "Anthropic API Key missing. Please add ANTHROPIC_API_KEY to your .env file."}), 400
-
     model = data.get('model')
     prompt = data.get('prompt')
     schema = data.get('schema')
     input_data = data.get('input_data')
     
+    # Properly serialize the schema
+    schema_str = json.dumps(schema) if isinstance(schema, dict) else schema
+
+    if provider == 'openai' and not get_openai_client():
+        return jsonify({"error": "OpenAI API Key missing."}), 400
+    if provider == 'anthropic' and not get_anthropic_client():
+        return jsonify({"error": "Anthropic API Key missing."}), 400
+    
     system_msg = f"""You are an expert data verification analyst. You MUST output ONLY raw JSON, with no markdown formatting. 
     You will receive a list of companies and their existing data attributes. Your task is to verify the selected fields.
     If the data is accurate, retain it. If it is inaccurate, correct it. If it is missing, research and fill it in.
     You must use exactly this JSON structure:
-    {schema}"""
+    {schema_str}"""
     
     user_content = f"Input Data to Verify:\n{input_data}\n\nInstructions:\n{prompt}"
     
     try:
         if provider == 'openai':
-            client = OpenAI(api_key=openai_key)
+            client = get_openai_client()
             response = client.chat.completions.create(
                 model=model,
+                response_format={ "type": "json_object" },
                 messages=[{"role": "system", "content": system_msg}, {"role": "user", "content": user_content}]
             )
             raw_text = response.choices[0].message.content
         else:
-            client = Anthropic(api_key=anthropic_key)
+            client = get_anthropic_client()
             message = client.messages.create(
                 model=model,
                 max_tokens=4000,
@@ -246,25 +256,18 @@ def verify_data():
             )
             raw_text = message.content[0].text
             
-        parsed_data = extract_json(raw_text)
-        return jsonify(parsed_data)
+        return jsonify(extract_json(raw_text))
         
     except Exception as e:
         error_msg = str(e)
-        if "401" in error_msg or "invalid_api_key" in error_msg or "authentication" in error_msg.lower():
-            friendly_name = "OpenAI" if provider == 'openai' else "Anthropic"
-            return jsonify({"error": f"Invalid {friendly_name} API Key. Check the key in your .env file."}), 401
-            
-        return jsonify({"error": error_msg, "raw_response": raw_text if 'raw_text' in locals() else None}), 500
+        if "401" in error_msg or "invalid_api_key" in error_msg:
+            return jsonify({"error": "Invalid API Key. Check the key in your .env file."}), 401
+        return jsonify({"error": error_msg}), 500
 
 if __name__ == '__main__':
-    import os
-    # Only calculate the port once to prevent the reloader from hopping
     port = int(os.environ.get("APP_PORT", 3030))
-    
     if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
         port = find_free_port(3030)
         os.environ["APP_PORT"] = str(port)
-
     print(f"🚀 Server running at http://127.0.0.1:{port}")
     app.run(host='127.0.0.1', port=port, debug=True)

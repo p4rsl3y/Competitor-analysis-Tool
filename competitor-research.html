@@ -188,7 +188,7 @@
     
     <div id="resultsResearch"></div>
   </div>
-
+  
   <div id="tab-verify" class="tab-content">
     <div class="upload-box">
       <h3 style="margin-bottom: 12px;">Upload Existing Competitor Data</h3>
@@ -217,6 +217,14 @@
         <label class="checkbox-label"><input type="checkbox" id="cbRankCompetitor"> Rank threat level (1-10)</label>
       </div>
 
+      <div class="mapping-title" style="margin-top: 10px;">4. Row Selection (Optional)</div>
+      <div style="margin-bottom: 20px;">
+        <input type="text" id="rowSelectionInput" placeholder="e.g. 1-10, 15, !5 (Leave blank for all)" style="width: 100%; max-width: 400px; padding: 10px; font-size: 14px; border-radius: 8px;">
+        <p style="font-size: 12px; color: #888; margin-top: 6px;">
+        Supports ranges (1-100), individual rows (1, 3), and exclusions (!5).
+        </p>
+      </div>
+      
       <button class="search-btn-main" id="verifyBtn" onclick="doVerify()" style="width: 100%; margin-top: 10px;">Run Verification Process →</button>
     </div>
 
@@ -469,6 +477,21 @@ function renderVerificationCheckboxes() {
 }
 
 async function doVerify() {
+  const BATCH_SIZE = 5; // Optimal for accuracy and rate limits
+  const selectionInput = document.getElementById('rowSelectionInput').value;
+  
+  // 1. Parse row selection logic
+  const selectedIndices = parseRowSelection(selectionInput, uploadedExcelData.length);
+  
+  if (selectedIndices.length === 0) {
+    alert("No valid rows selected based on your input."); 
+    return;
+  }
+
+  // 2. Filter data for verification
+  const filteredData = selectedIndices.map(index => uploadedExcelData[index]);
+
+  // 3. Setup verification parameters
   verifyTargetCompany = document.getElementById('companyColSelect').value;
   verifyColumnKeys = Array.from(document.querySelectorAll('.verify-cb:checked')).map(cb => cb.value);
   
@@ -477,32 +500,24 @@ async function doVerify() {
   const rankCompetitor = document.getElementById('cbRankCompetitor').checked;
 
   if (!verifyTargetCompany || verifyColumnKeys.length === 0) {
-    alert("Select a primary entity column and at least one data column to verify."); return;
-  }
-  if ((checkCompetitor || rankCompetitor) && !targetCompany) {
-    alert("Please enter a Target Company to perform the advanced analysis against."); return;
+    alert("Select a primary entity column and at least one data column to verify."); 
+    return;
   }
 
-  const inputData = uploadedExcelData.map(row => {
-    let obj = { [verifyTargetCompany]: row[verifyTargetCompany] };
-    verifyColumnKeys.forEach(k => obj[k] = row[k]);
-    return obj;
-  });
-
+  // 4. Construct JSON Schema
   const schemaProps = { "entity_name": "string matching input exactly" };
-  
   if (checkCompetitor) {
-    schemaProps["is_competitor"] = "boolean (true if they are a direct competitor to the target company, false otherwise)";
-    schemaProps["competitor_rationale"] = "Brief 1-sentence explanation of their competitor status";
+    schemaProps["is_competitor"] = "boolean";
+    schemaProps["competitor_rationale"] = "string";
   }
   if (rankCompetitor) {
-    schemaProps["competition_score"] = "Number from 1 to 10 indicating threat level (10 = highest direct threat)";
+    schemaProps["competition_score"] = "number";
   }
 
   verifyColumnKeys.forEach(k => {
     const safeKey = k.replace(/[^a-zA-Z0-9]/g, "_");
-    schemaProps[`${safeKey}_verified`] = "Verified/updated data (string)";
-    schemaProps[`${safeKey}_status`] = "Must be strictly one of: 'unchanged', 'corrected', 'filled'";
+    schemaProps[`${safeKey}_verified`] = "string";
+    schemaProps[`${safeKey}_status`] = "unchanged | corrected | filled";
   });
   
   const schema = JSON.stringify({ verified_records: [schemaProps] });
@@ -510,86 +525,96 @@ async function doVerify() {
   let customPrompt = "Review the provided dataset. Correct inaccurate entries, fill missing blanks, and flag status.";
   if (checkCompetitor || rankCompetitor) {
     customPrompt += `\nAdditionally, evaluate each entity against the target company: "${targetCompany}".`;
-    if (checkCompetitor) customPrompt += " Determine if they are currently a direct competitor.";
-    if (rankCompetitor) customPrompt += " Assign a competition threat score from 1-10.";
   }
 
-  startLog('Verifying Datasets...'); addLog('Processing with AI provider...');
+  // 5. Initialize UI and Logs
+  lastVerifiedResults = []; 
+  startLog(`Batch Verifying ${filteredData.length} Rows...`);
   hide('resultsVerify');
 
-  try {
-    const res = await fetch('/api/verify', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        provider: document.getElementById('providerSelect').value,
-        model: document.getElementById('modelSelect').value,
-        prompt: customPrompt,
-        schema: schema,
-        input_data: JSON.stringify(inputData)
-      })
+  // 6. Batch Processing Loop
+  for (let i = 0; i < filteredData.length; i += BATCH_SIZE) {
+    const chunk = filteredData.slice(i, i + BATCH_SIZE);
+    const progress = Math.round(((i + chunk.length) / filteredData.length) * 100);
+    
+    addLog(`Processing batch ${Math.floor(i/BATCH_SIZE) + 1} (${progress}% complete)...`);
+
+    const inputData = chunk.map(row => {
+      let obj = { [verifyTargetCompany]: row[verifyTargetCompany] };
+      verifyColumnKeys.forEach(k => obj[k] = row[k]);
+      return obj;
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
-    hide('loading');
-    lastVerifiedResults = data.verified_records;
-    renderVerifyResults(data.verified_records);
-  } catch(e) { document.getElementById('errorBox').innerHTML = e.message; show('errorBox'); hide('loading'); }
+
+    try {
+      const res = await fetch('/api/verify', {
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: document.getElementById('providerSelect').value,
+          model: document.getElementById('modelSelect').value,
+          prompt: customPrompt,
+          schema: schema,
+          input_data: JSON.stringify(inputData)
+        })
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      
+      // 7. Accumulate and live-render results
+      lastVerifiedResults = lastVerifiedResults.concat(data.verified_records);
+      renderVerifyResults(lastVerifiedResults); 
+      
+    } catch(e) {
+      document.getElementById('errorBox').innerHTML = `Error in batch starting at row ${i + 1}: ${e.message}`;
+      show('errorBox');
+      console.error("Verification failed:", e);
+      break; // Stop processing on error to save tokens/costs
+    }
+  }
+  
+  hide('loading');
 }
 
 function renderVerifyResults(records) {
   if (!records || records.length === 0) return;
   
-  const checkCompetitor = document.getElementById('cbVerifyCompetitor').checked;
-  const rankCompetitor = document.getElementById('cbRankCompetitor').checked;
+  const checkComp = document.getElementById('cbVerifyCompetitor').checked;
+  const rankComp = document.getElementById('cbRankCompetitor').checked;
 
-  if (rankCompetitor) {
-    records.sort((a, b) => (b.competition_score || 0) - (a.competition_score || 0));
-  }
+  // Optional: Sort by threat score if that feature is active
+  if (rankComp) records.sort((a, b) => (b.competition_score || 0) - (a.competition_score || 0));
 
   let ths = `<th>Entity</th>`;
-  if (checkCompetitor) ths += `<th>Status</th>`;
-  if (rankCompetitor) ths += `<th>Threat Score</th>`;
+  if (checkComp) ths += `<th>Status</th>`;
+  if (rankComp) ths += `<th>Threat Score</th>`;
   verifyColumnKeys.forEach(k => { ths += `<th>${k} (Verified)</th>`; });
 
-  const rowsHtml = records.map((rec, i) => {
+  const rowsHtml = records.map(rec => {
     let tds = `<td><div class="results-company" style="font-size:15px; margin:0;">${rec.entity_name}</div></td>`;
     
-    if (checkCompetitor) {
-      const isComp = rec.is_competitor;
-      const rat = rec.competitor_rationale || '';
-      const badgeClass = isComp ? 'status-corrected' : 'status-unchanged'; 
-      const badgeText = isComp ? 'COMPETITOR' : 'NOT COMPETITOR';
-      tds += `<td><span class="status-badge ${badgeClass}">${badgeText}</span><div style="font-size:11px; color:#666; margin-top:6px;">${rat}</div></td>`;
+    if (checkComp) {
+      const badgeClass = rec.is_competitor ? 'status-corrected' : 'status-unchanged'; 
+      tds += `<td><span class="status-badge ${badgeClass}">${rec.is_competitor ? 'COMPETITOR' : 'NOT COMPETITOR'}</span></td>`;
     }
 
-    if (rankCompetitor) {
-      const score = rec.competition_score || 'N/A';
-      tds += `<td><div style="font-size: 16px; font-weight: 700;">${score}<span style="font-size: 12px; color: #888;">/10</span></div></td>`;
-    }
+    if (rankComp) tds += `<td><b>${rec.competition_score || 'N/A'}</b>/10</td>`;
 
     verifyColumnKeys.forEach(k => {
       const safeKey = k.replace(/[^a-zA-Z0-9]/g, "_");
-      const val = rec[`${safeKey}_verified`];
       const stat = rec[`${safeKey}_status`];
-      let statClass = 'status-unchanged';
-      if(stat === 'corrected') statClass = 'status-corrected';
-      if(stat === 'filled') statClass = 'status-filled';
-      tds += `<td>
-        <div style="margin-bottom:6px;">${val || '—'}</div>
-        <span class="status-badge ${statClass}">${stat || 'unchanged'}</span>
-      </td>`;
+      tds += `<td><div style="margin-bottom:4px;">${rec[`${safeKey}_verified`] || '—'}</div>
+              <span class="status-badge status-${stat || 'unchanged'}">${stat || 'unchanged'}</span></td>`;
     });
     return `<tr>${tds}</tr>`;
   }).join('');
 
   document.getElementById('resultsVerify').innerHTML = `
     <div class="results-header fade-in">
-      <div class="results-company">Verification Complete</div>
-      <button class="export-btn" onclick="exportExcelVerify()">Export Verified Data ↓</button>
+      <div class="results-company">Verified (${records.length}/${uploadedExcelData.length})</div>
+      <button class="export-btn" onclick="exportExcelVerify()">Export ↓</button>
     </div>
-    <div class="table-wrap fade-in">
-      <table><thead><tr>${ths}</tr></thead><tbody>${rowsHtml}</tbody></table>
-    </div>
+    <div class="table-wrap fade-in"><table><thead><tr>${ths}</tr></thead><tbody>${rowsHtml}</tbody></table></div>
   `;
   show('resultsVerify');
 }
@@ -673,6 +698,44 @@ function renderDataPreview() {
     </div>
   `;
   show('dataPreviewSection');
+}
+
+function parseRowSelection(input, maxRows) {
+  if (!input || input.trim() === "") {
+    // Return all indices if blank
+    return Array.from({ length: maxRows }, (_, i) => i);
+  }
+
+  const indices = new Set();
+  const exclusions = new Set();
+  const parts = input.split(',').map(p => p.trim());
+
+  parts.forEach(part => {
+    let isExclusion = part.startsWith('!');
+    let cleanPart = isExclusion ? part.substring(1) : part;
+
+    if (cleanPart.includes('-')) {
+      const [start, end] = cleanPart.split('-').map(Number);
+      for (let i = start; i <= end; i++) {
+        if (i >= 1 && i <= maxRows) {
+          isExclusion ? exclusions.add(i - 1) : indices.add(i - 1);
+        }
+      }
+    } else {
+      const num = Number(cleanPart);
+      if (!isNaN(num) && num >= 1 && num <= maxRows) {
+        isExclusion ? exclusions.add(num - 1) : indices.add(num - 1);
+      }
+    }
+  });
+
+  // If no positive indices were added (e.g., user only typed exclusions), 
+  // start with all rows and then remove exclusions.
+  const finalIndices = indices.size === 0 
+    ? Array.from({ length: maxRows }, (_, i) => i) 
+    : Array.from(indices);
+
+  return finalIndices.filter(i => !exclusions.has(i));
 }
 </script>
 </body>
