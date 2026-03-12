@@ -4,24 +4,26 @@ import re
 import socket
 import threading
 import time
-from flask import Flask, request, jsonify, send_file
+import io
+from flask import Flask, request, jsonify, send_file, redirect
 from dotenv import load_dotenv
 from openai import OpenAI
 from anthropic import Anthropic
 
+# Load keys from the .env file
 load_dotenv()
 
 app = Flask(__name__)
 SETTINGS_FILE = 'settings.json'
 
-# Concurrency lock for file I/O
+# Concurrency lock for file I/O to prevent corruption
 settings_lock = threading.Lock()
 
-# Cache for model fetching
+# Cache for model fetching to reduce latency and API calls
 model_cache = {"data": None, "timestamp": 0}
 CACHE_TTL = 3600  # 1 hour
 
-# Lazy-loaded clients
+# Lazy-loaded clients to ensure they are only initialized if keys exist
 clients = {"openai": None, "anthropic": None}
 
 def get_openai_client():
@@ -91,13 +93,26 @@ def format_model_label(model_id):
         return f"{base_name} ({date_str})"
     return base_name
 
+@app.before_request
+def redirect_to_http():
+    """Forces the user back to HTTP if they accidentally attempt to use HTTPS locally."""
+    if request.is_secure:
+        url = request.url.replace("https://", "http://", 1)
+        return redirect(url, code=301)
+
+@app.after_request
+def disable_hsts(response):
+    """Prevents browsers from auto-upgrading to HTTPS for this local domain."""
+    response.headers["Strict-Transport-Security"] = "max-age=0; includeSubDomains"
+    return response
+
 @app.route('/')
 def index():
     return send_file('competitor-research.html')
 
 @app.route('/api/settings', methods=['GET', 'POST'])
 def handle_settings():
-    """Handles saving and loading the column configurations safely."""
+    """Handles saving and loading configurations safely using a lock."""
     if request.method == 'POST':
         with settings_lock:
             with open(SETTINGS_FILE, 'w') as f:
@@ -162,7 +177,6 @@ def research():
     prompt = data.get('prompt')
     schema = data.get('schema')
     
-    # Properly serialize the schema
     schema_str = json.dumps(schema) if isinstance(schema, dict) else schema
     
     if provider == 'openai' and not get_openai_client():
@@ -178,7 +192,6 @@ def research():
     try:
         if provider == 'openai':
             client = get_openai_client()
-            # Enforce native JSON output format
             response = client.chat.completions.create(
                 model=model,
                 response_format={ "type": "json_object" },
@@ -198,19 +211,7 @@ def research():
         return jsonify(extract_json(raw_text))
         
     except Exception as e:
-        error_msg = str(e)
-        if "401" in error_msg or "invalid_api_key" in error_msg:
-            return jsonify({"error": "Invalid API Key. Please check your .env file."}), 401
-        return jsonify({"error": error_msg}), 500
-
-def find_free_port(start_port):
-    port = start_port
-    while port < start_port + 10:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            if s.connect_ex(('127.0.0.1', port)) != 0:
-                return port
-            port += 1
-    return start_port
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/verify', methods=['POST'])
 def verify_data():
@@ -221,7 +222,6 @@ def verify_data():
     schema = data.get('schema')
     input_data = data.get('input_data')
     
-    # Properly serialize the schema
     schema_str = json.dumps(schema) if isinstance(schema, dict) else schema
 
     if provider == 'openai' and not get_openai_client():
@@ -259,15 +259,23 @@ def verify_data():
         return jsonify(extract_json(raw_text))
         
     except Exception as e:
-        error_msg = str(e)
-        if "401" in error_msg or "invalid_api_key" in error_msg:
-            return jsonify({"error": "Invalid API Key. Check the key in your .env file."}), 401
-        return jsonify({"error": error_msg}), 500
+        return jsonify({"error": str(e)}), 500
+
+def find_free_port(start_port):
+    port = start_port
+    while port < start_port + 10:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            if s.connect_ex(('127.0.0.1', port)) != 0:
+                return port
+            port += 1
+    return start_port
 
 if __name__ == '__main__':
     port = int(os.environ.get("APP_PORT", 3030))
     if os.environ.get("WERKZEUG_RUN_MAIN") != "true":
         port = find_free_port(3030)
         os.environ["APP_PORT"] = str(port)
-    print(f"🚀 Server running at http://127.0.0.1:{port}")
-    app.run(host='127.0.0.1', port=port, debug=True)
+    
+    print(f"Server running at http://localhost:{port}")
+    # Always run host 127.0.0.1 for local single-user access
+    app.run(host='127.0.0.1', port=port, debug=False, use_reloader=True)
