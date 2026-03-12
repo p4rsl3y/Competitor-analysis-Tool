@@ -1,4 +1,4 @@
-# Competitor Research Tool (v0.2)
+# Competitor Research Tool (v0.3)
 A specialized competitive intelligence analyst tool that leverages Large Language Models (LLMs) to research and map the landscape of any company or product. It dynamically generates structured data based on custom-defined columns and exports results to professional formats.
 
 ### Requirements
