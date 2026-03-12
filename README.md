@@ -13,12 +13,16 @@ git clone <https://github.com/p4rsl3y/Competitor-analysis-Tool-.git>
 ```
 
 ### Make the setup script executable and run it
-1. Run these commands in your terminal
+1. Run this commands in your terminal
 ```
-cd competitor-analysis-tool
-chmod +x setup.sh
 ./setup.sh
 ```
+
+    If the command does not run the setup file run this command and try again.
+    ```
+    cd competitor-analysis-tool
+    chmod +x setup.sh
+    ```
 
 2. Configure API Keys
 The setup script creates a .env file based on the template. Open it and add your credentials:

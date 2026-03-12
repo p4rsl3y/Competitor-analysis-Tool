@@ -1,0 +1,1117 @@
+{
+  "ML6": [
+    {
+      "category": "Pricing",
+      "positives": [
+        {
+          "impact_score": 7,
+          "keyword": "Custom pricing flexibility",
+          "search_query": "ML6 pricing tiers plans"
+        },
+        {
+          "impact_score": 6,
+          "keyword": "Transparent cost structure",
+          "search_query": "ML6 pricing transparency breakdown"
+        },
+        {
+          "impact_score": 5,
+          "keyword": "SMB-friendly rates",
+          "search_query": "ML6 pricing small business affordable"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Transparent pricing",
+          "search_query": "ML6 pricing tiers transparency"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Flexible pay-as-you-go",
+          "search_query": "ML6 pay-as-you-go pricing model"
+        },
+        {
+          "impact_score": 6,
+          "keyword": "Enterprise discounts",
+          "search_query": "ML6 enterprise pricing discounts"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Custom enterprise plans",
+          "search_query": "ML6 enterprise pricing options"
+        },
+        {
+          "impact_score": 6,
+          "keyword": "Pay-per-use flexibility",
+          "search_query": "ML6 variable pricing model"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Flexible billing",
+          "search_query": "ML6 subscription plans pricing options"
+        },
+        {
+          "impact_score": 6,
+          "keyword": "No hidden fees",
+          "search_query": "ML6 pricing transparency fees"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Custom pricing model",
+          "search_query": "ML6 pricing tiers costs"
+        },
+        {
+          "impact_score": 6,
+          "keyword": "Enterprise flexibility",
+          "search_query": "ML6 custom enterprise pricing"
+        },
+        {
+          "impact_score": 5,
+          "keyword": "Pay-per-use option",
+          "search_query": "ML6 consumption-based pricing"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Flexible packages",
+          "search_query": "ML6 pricing plans options"
+        },
+        {
+          "impact_score": 6,
+          "keyword": "ROI-focused value",
+          "search_query": "ML6 cost benefit analysis"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Limited pricing visibility",
+          "search_query": "ML6 pricing hidden costs unclear",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Higher entry costs",
+          "search_query": "ML6 pricing expensive comparison QuantumBlack",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Higher initial costs",
+          "search_query": "ML6 pricing expensive compared competitors",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Premium tier required",
+          "search_query": "ML6 advanced features premium pricing",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Limited free tier",
+          "search_query": "ML6 free trial limitations",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Premium tier costs",
+          "search_query": "ML6 expensive pricing complaints",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Implementation fees",
+          "search_query": "ML6 setup implementation costs",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Premium tier cost",
+          "search_query": "ML6 enterprise pricing expensive",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Usage-based charges",
+          "search_query": "ML6 pricing overage charges fees",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Vendor lock-in",
+          "search_query": "ML6 long-term contract commitment",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Opaque pricing",
+          "search_query": "ML6 hidden pricing costs",
+          "severity_score": 4
+        },
+        {
+          "keyword": "No public rates",
+          "search_query": "ML6 pricing available public",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Enterprise-only access",
+          "search_query": "ML6 SMB pricing options",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Hidden setup costs",
+          "search_query": "ML6 implementation fees complaints",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Premium features locked",
+          "search_query": "ML6 paywall advanced features",
+          "severity_score": 2
+        }
+      ]
+    },
+    {
+      "category": "Core Features",
+      "positives": [
+        {
+          "impact_score": 8,
+          "keyword": "Automated ML pipeline",
+          "search_query": "ML6 automated machine learning pipeline"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Rapid model deployment",
+          "search_query": "ML6 model deployment speed features"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Data integration tooling",
+          "search_query": "ML6 data integration capabilities"
+        },
+        {
+          "impact_score": 9,
+          "keyword": "Automated ML",
+          "search_query": "ML6 automated machine learning capabilities"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "End-to-end pipeline",
+          "search_query": "ML6 complete ML pipeline automation"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Advanced preprocessing",
+          "search_query": "ML6 data preprocessing feature engineering"
+        },
+        {
+          "impact_score": 9,
+          "keyword": "End-to-end automation",
+          "search_query": "ML6 automated machine learning features"
+        },
+        {
+          "impact_score": 9,
+          "keyword": "AutoML capabilities",
+          "search_query": "ML6 AutoML platform features"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Low-code interface",
+          "search_query": "ML6 no-code visual interface"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Real-time predictions",
+          "search_query": "ML6 real-time inference deployment"
+        },
+        {
+          "impact_score": 9,
+          "keyword": "Enterprise automation",
+          "search_query": "ML6 enterprise automation capabilities"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Advanced customization",
+          "search_query": "ML6 custom feature development"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Integrated dashboard",
+          "search_query": "ML6 dashboard visualization interface"
+        },
+        {
+          "impact_score": 9,
+          "keyword": "Machine learning expertise",
+          "search_query": "ML6 AI consulting services"
+        },
+        {
+          "impact_score": 9,
+          "keyword": "Custom model development",
+          "search_query": "ML6 machine learning models"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Data science consulting",
+          "search_query": "ML6 data science capabilities"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "End-to-end implementation",
+          "search_query": "ML6 full-stack solutions"
+        },
+        {
+          "impact_score": 9,
+          "keyword": "Advanced ML automation",
+          "search_query": "ML6 machine learning capabilities"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Real-time analytics",
+          "search_query": "ML6 real-time reporting features"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "API integration",
+          "search_query": "ML6 API connectivity documentation"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Limited governance features",
+          "search_query": "ML6 governance compliance limitations",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Smaller feature set",
+          "search_query": "ML6 features comparison QuantumBlack gaps",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Vendor lock-in",
+          "search_query": "ML6 vendor lock-in concerns",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Limited interpretability",
+          "search_query": "ML6 model interpretability explainability",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Custom algorithms weak",
+          "search_query": "ML6 custom algorithm support limitations",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Black box limitation",
+          "search_query": "ML6 model interpretability transparency issues",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Limited customization",
+          "search_query": "ML6 custom algorithm constraints",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Limited ML models",
+          "search_query": "ML6 machine learning algorithms available",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Proprietary framework",
+          "search_query": "ML6 proprietary technology limitations",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Steep learning curve",
+          "search_query": "ML6 documentation user guide complexity",
+          "severity_score": 3
+        },
+        {
+          "keyword": "No video tools",
+          "search_query": "ML6 video processing features",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Consulting-heavy model",
+          "search_query": "ML6 self-service platform",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Longer implementation time",
+          "search_query": "ML6 deployment timeline",
+          "severity_score": 3
+        }
+      ]
+    },
+    {
+      "category": "Experience",
+      "positives": [
+        {
+          "impact_score": 8,
+          "keyword": "Intuitive user interface",
+          "search_query": "ML6 user interface UX review"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Responsive support team",
+          "search_query": "ML6 customer support response quality"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Quick onboarding process",
+          "search_query": "ML6 onboarding implementation time"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Quick model deployment",
+          "search_query": "ML6 fast deployment time production"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Comprehensive support team",
+          "search_query": "ML6 customer support quality response"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Guided workflow setup",
+          "search_query": "ML6 onboarding training documentation"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "User-friendly interface",
+          "search_query": "ML6 user experience interface design"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Customer support",
+          "search_query": "ML6 customer service support quality"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Quick onboarding",
+          "search_query": "ML6 onboarding setup process time"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Intuitive interface",
+          "search_query": "ML6 user interface design"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Responsive support",
+          "search_query": "ML6 customer support quality"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Limited training resources",
+          "search_query": "ML6 training documentation support gaps",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Smaller support capacity",
+          "search_query": "ML6 support team availability limitations",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Steep learning curve",
+          "search_query": "ML6 complex platform training difficulty",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Limited community presence",
+          "search_query": "ML6 community forum activity engagement",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Documentation gaps",
+          "search_query": "ML6 documentation completeness issues",
+          "severity_score": 2
+        },
+        {
+          "keyword": "Limited community",
+          "search_query": "ML6 user community forum support",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Documentation sparse",
+          "search_query": "ML6 documentation completeness guides",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Vendor dependent",
+          "search_query": "ML6 vendor support dependency",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Limited human support",
+          "search_query": "ML6 support availability issues",
+          "severity_score": 3
+        }
+      ]
+    },
+    {
+      "category": "User Experience",
+      "positives": [
+        {
+          "impact_score": 9,
+          "keyword": "Intuitive interface",
+          "search_query": "ML6 user interface ease of use"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Low code platform",
+          "search_query": "ML6 low code no code features"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Guided workflows",
+          "search_query": "ML6 workflow automation step-by-step"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Steep onboarding",
+          "search_query": "ML6 onboarding process learning difficulty",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Support response slow",
+          "search_query": "ML6 customer support response time",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Limited customization",
+          "search_query": "ML6 workflow customization flexibility",
+          "severity_score": 2
+        }
+      ]
+    }
+  ],
+  "Advian": [
+    {
+      "category": "Pricing",
+      "positives": [
+        {
+          "impact_score": 6,
+          "keyword": "Transparent service rates",
+          "source_url": "https://www.advian.com"
+        },
+        {
+          "impact_score": 6,
+          "keyword": "Project-based billing",
+          "source_url": "https://www.advian.com"
+        }
+      ],
+      "landmines": [
+        {
+          "impact_score": -3,
+          "keyword": "Limited pricing visibility",
+          "source_url": "https://www.advian.com"
+        }
+      ]
+    },
+    {
+      "category": "Core Features",
+      "positives": [
+        {
+          "impact_score": 7,
+          "keyword": "Data analytics services",
+          "source_url": "https://www.advian.com"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Business intelligence",
+          "source_url": "https://www.advian.com"
+        },
+        {
+          "impact_score": 6,
+          "keyword": "Process optimization",
+          "source_url": "https://www.advian.com"
+        }
+      ],
+      "landmines": [
+        {
+          "impact_score": -4,
+          "keyword": "Limited ML depth",
+          "source_url": "https://www.advian.com"
+        },
+        {
+          "impact_score": -3,
+          "keyword": "Older technology stack",
+          "source_url": "https://www.advian.com"
+        }
+      ]
+    },
+    {
+      "category": "Experience",
+      "positives": [
+        {
+          "impact_score": 6,
+          "keyword": "Established service delivery",
+          "source_url": "https://www.advian.com"
+        },
+        {
+          "impact_score": 5,
+          "keyword": "Regional market knowledge",
+          "source_url": "https://www.advian.com"
+        }
+      ],
+      "landmines": [
+        {
+          "impact_score": -3,
+          "keyword": "Limited digital presence",
+          "source_url": "https://www.advian.com"
+        },
+        {
+          "impact_score": -3,
+          "keyword": "Fewer client testimonials",
+          "source_url": "https://www.advian.com"
+        }
+      ]
+    }
+  ],
+  "QuantumBlack": [
+    {
+      "category": "Pricing",
+      "positives": [
+        {
+          "impact_score": 8,
+          "keyword": "Enterprise pricing scale",
+          "search_query": "QuantumBlack pricing enterprise deals"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Volume discount incentives",
+          "search_query": "QuantumBlack pricing volume discounts"
+        },
+        {
+          "impact_score": 6,
+          "keyword": "ROI-based pricing model",
+          "search_query": "QuantumBlack pricing ROI performance-based"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Complex pricing structure",
+          "search_query": "QuantumBlack pricing complicated confusing",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Enterprise-only focus",
+          "search_query": "QuantumBlack pricing mid-market accessibility",
+          "severity_score": 3
+        }
+      ]
+    },
+    {
+      "category": "Core Features",
+      "positives": [
+        {
+          "impact_score": 9,
+          "keyword": "Advanced analytics platform",
+          "search_query": "QuantumBlack advanced analytics features"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Enterprise governance tools",
+          "search_query": "QuantumBlack governance compliance features"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Scalable infrastructure",
+          "search_query": "QuantumBlack scalable infrastructure MLOps"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Steep learning curve",
+          "search_query": "QuantumBlack complex difficult learning curve",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Slower deployment cycle",
+          "search_query": "QuantumBlack deployment speed implementation time",
+          "severity_score": 3
+        }
+      ]
+    },
+    {
+      "category": "Experience",
+      "positives": [
+        {
+          "impact_score": 8,
+          "keyword": "Expert-led consulting",
+          "search_query": "QuantumBlack consulting services expert support"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Comprehensive training programs",
+          "search_query": "QuantumBlack training certification programs"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Premium customer experience",
+          "search_query": "QuantumBlack customer success management"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Complex implementation process",
+          "search_query": "QuantumBlack implementation complexity challenges",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Vendor lock-in concerns",
+          "search_query": "QuantumBlack vendor lock-in dependencies",
+          "severity_score": 4
+        }
+      ]
+    }
+  ],
+  "Random Forest": [
+    {
+      "category": "Pricing",
+      "positives": [
+        {
+          "impact_score": 9,
+          "keyword": "Open source free",
+          "search_query": "Random Forest open source free"
+        },
+        {
+          "impact_score": 9,
+          "keyword": "No licensing costs",
+          "search_query": "Random Forest no licensing fees"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Community supported",
+          "search_query": "Random Forest community support model"
+        },
+        {
+          "impact_score": 9,
+          "keyword": "Low barrier entry",
+          "search_query": "Random Forest free open source"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Scikit-learn integration",
+          "search_query": "Random Forest scikit-learn free implementation"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Zero licensing cost",
+          "search_query": "Random Forest no licensing fees"
+        },
+        {
+          "impact_score": 5,
+          "keyword": "Enterprise affordable",
+          "search_query": "Random Forest enterprise pricing implementation"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Implementation costs high",
+          "search_query": "Random Forest implementation deployment costs",
+          "severity_score": 4
+        },
+        {
+          "keyword": "DevOps infrastructure needed",
+          "search_query": "Random Forest infrastructure requirements setup",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Enterprise support optional",
+          "search_query": "Random Forest enterprise support paid",
+          "severity_score": 2
+        },
+        {
+          "keyword": "Infrastructure expenses",
+          "search_query": "Random Forest computational requirements costs",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Training time overhead",
+          "search_query": "Random Forest model training expensive",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Implementation costs",
+          "search_query": "Random Forest implementation integration costs",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Support expensive",
+          "search_query": "Random Forest professional support pricing",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Infrastructure needed",
+          "search_query": "Random Forest deployment infrastructure requirements",
+          "severity_score": 4
+        }
+      ]
+    },
+    {
+      "category": "Core Features",
+      "positives": [
+        {
+          "impact_score": 9,
+          "keyword": "Ensemble learning",
+          "search_query": "Random Forest ensemble methods advantages"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Feature importance ranking",
+          "search_query": "Random Forest feature importance analysis"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Robust predictions",
+          "search_query": "Random Forest robustness outlier resistance"
+        },
+        {
+          "impact_score": 10,
+          "keyword": "Explainability strength",
+          "search_query": "Random Forest feature importance interpretability"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Handles nonlinearity",
+          "search_query": "Random Forest nonlinear relationships"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Mixed data types",
+          "search_query": "Random Forest categorical numerical features"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Feature importance",
+          "search_query": "Random Forest feature importance analysis"
+        },
+        {
+          "impact_score": 9,
+          "keyword": "Regression classification",
+          "search_query": "Random Forest regression classification tasks"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Requires ML expertise",
+          "search_query": "Random Forest steep learning curve",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Manual tuning needed",
+          "search_query": "Random Forest hyperparameter tuning complexity",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Large memory usage",
+          "search_query": "Random Forest memory consumption scalability",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Manual tuning required",
+          "search_query": "Random Forest hyperparameter tuning complexity",
+          "severity_score": 4
+        },
+        {
+          "keyword": "No built-in automation",
+          "search_query": "Random Forest lacks automated feature engineering",
+          "severity_score": 3
+        },
+        {
+          "keyword": "High memory usage",
+          "search_query": "Random Forest memory consumption large datasets",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Complex tuning",
+          "search_query": "Random Forest hyperparameter tuning difficulty",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Memory intensive",
+          "search_query": "Random Forest memory consumption requirements",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Not for sequences",
+          "search_query": "Random Forest time series limitations",
+          "severity_score": 3
+        }
+      ]
+    },
+    {
+      "category": "User Experience",
+      "positives": [
+        {
+          "impact_score": 8,
+          "keyword": "Familiar syntax",
+          "search_query": "Random Forest Python scikit-learn integration"
+        },
+        {
+          "impact_score": 9,
+          "keyword": "Extensive documentation",
+          "search_query": "Random Forest documentation tutorials resources"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Research-proven method",
+          "search_query": "Random Forest academic research validation"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Coding required",
+          "search_query": "Random Forest programming knowledge required",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Slow model training",
+          "search_query": "Random Forest training time performance",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Community fragmented",
+          "search_query": "Random Forest multiple implementations variations",
+          "severity_score": 2
+        }
+      ]
+    },
+    {
+      "category": "Experience",
+      "positives": [
+        {
+          "impact_score": 9,
+          "keyword": "Extensive community resources",
+          "search_query": "Random Forest community tutorials Stack Overflow"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Mature documentation",
+          "search_query": "Random Forest scikit-learn documentation quality"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Industry standard adoption",
+          "search_query": "Random Forest widely used preferred algorithm"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Learning curve flat",
+          "search_query": "Random Forest easy understand beginner friendly"
+        },
+        {
+          "impact_score": 9,
+          "keyword": "Large community",
+          "search_query": "Random Forest community support documentation"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Extensive tutorials",
+          "search_query": "Random Forest tutorials documentation learning"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Easy integration",
+          "search_query": "Random Forest Python scikit-learn integration"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Manual effort intensive",
+          "search_query": "Random Forest time-consuming feature engineering",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Requires coding knowledge",
+          "search_query": "Random Forest programming skills required",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Debugging complexity",
+          "search_query": "Random Forest model debugging troubleshooting",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Open source issues",
+          "search_query": "Random Forest bug reports GitHub issues",
+          "severity_score": 2
+        },
+        {
+          "keyword": "No dedicated support",
+          "search_query": "Random Forest paid enterprise support",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Configuration overwhelming",
+          "search_query": "Random Forest parameter configuration complexity",
+          "severity_score": 4
+        }
+      ]
+    }
+  ],
+  "DAIN Studios": [
+    {
+      "category": "Pricing",
+      "positives": [
+        {
+          "impact_score": 8,
+          "keyword": "Transparent pricing",
+          "search_query": "DAIN Studios pricing transparency"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Affordable starter tier",
+          "search_query": "DAIN Studios basic plan cost"
+        },
+        {
+          "impact_score": 6,
+          "keyword": "Clear feature breakdowns",
+          "search_query": "DAIN Studios pricing comparison features"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Limited scaling tiers",
+          "search_query": "DAIN Studios enterprise pricing",
+          "severity_score": 2
+        },
+        {
+          "keyword": "Premium costs high",
+          "search_query": "DAIN Studios expensive tier",
+          "severity_score": 3
+        }
+      ]
+    },
+    {
+      "category": "Core Features",
+      "positives": [
+        {
+          "impact_score": 9,
+          "keyword": "Video interpolation",
+          "search_query": "DAIN Studios video upscaling"
+        },
+        {
+          "impact_score": 9,
+          "keyword": "Frame rate enhancement",
+          "search_query": "DAIN Studios frame interpolation"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Easy API integration",
+          "search_query": "DAIN Studios API documentation"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Real-time processing",
+          "search_query": "DAIN Studios real-time video"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Niche focus limited",
+          "search_query": "DAIN Studios video-only capabilities",
+          "severity_score": 4
+        },
+        {
+          "keyword": "No consulting services",
+          "search_query": "DAIN Studios professional services",
+          "severity_score": 3
+        },
+        {
+          "keyword": "Limited enterprise features",
+          "search_query": "DAIN Studios enterprise tools",
+          "severity_score": 2
+        }
+      ]
+    }
+  ],
+  "Alexander Thamn": [
+    {
+      "category": "Pricing",
+      "positives": [
+        {
+          "impact_score": 6,
+          "keyword": "Competitive rates",
+          "search_query": "Alexander Thamn pricing comparison"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Custom solutions",
+          "search_query": "Alexander Thamn bespoke pricing"
+        },
+        {
+          "impact_score": 5,
+          "keyword": "Enterprise discounts",
+          "search_query": "Alexander Thamn volume pricing"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Opaque pricing",
+          "search_query": "Alexander Thamn pricing unclear",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Costly add-ons",
+          "search_query": "Alexander Thamn additional charges",
+          "severity_score": 3
+        }
+      ]
+    },
+    {
+      "category": "Core Features",
+      "positives": [
+        {
+          "impact_score": 7,
+          "keyword": "Industry expertise",
+          "search_query": "Alexander Thamn domain specialization"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Consulting services",
+          "search_query": "Alexander Thamn strategic consulting"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Custom implementations",
+          "search_query": "Alexander Thamn tailored solutions"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Manual processes",
+          "search_query": "Alexander Thamn automation limitations",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Legacy technology",
+          "search_query": "Alexander Thamn outdated platform",
+          "severity_score": 3
+        }
+      ]
+    },
+    {
+      "category": "Experience",
+      "positives": [
+        {
+          "impact_score": 9,
+          "keyword": "Expert guidance",
+          "search_query": "Alexander Thamn consulting expertise"
+        },
+        {
+          "impact_score": 8,
+          "keyword": "Personal account managers",
+          "search_query": "Alexander Thamn dedicated support"
+        },
+        {
+          "impact_score": 7,
+          "keyword": "Change management",
+          "search_query": "Alexander Thamn transition assistance"
+        }
+      ],
+      "landmines": [
+        {
+          "keyword": "Slow implementation",
+          "search_query": "Alexander Thamn deployment delays",
+          "severity_score": 4
+        },
+        {
+          "keyword": "Inconsistent execution",
+          "search_query": "Alexander Thamn service quality concerns",
+          "severity_score": 3
+        }
+      ]
+    }
+  ]
+}
