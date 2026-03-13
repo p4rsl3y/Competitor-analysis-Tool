@@ -1,5 +1,7 @@
-- Improve Comparison tool
-- Add one on one comparison tool
 - Make usable by multiple people, hostable on a server, etc
-- Add dashboard
-- perp. storage?
+    - made render.com account link to github repo to host from there? check up in gemini chat to see
+        
+- Add dashboardy
+    look at specific company gathered data
+- perp. storage
+    -.db for presets is done now need to add gatherd inf from one on one to this

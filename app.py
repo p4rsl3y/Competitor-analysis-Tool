@@ -2,31 +2,62 @@ import os
 import json
 import re
 import socket
-import threading
 import time
-import io
-from flask import Flask, request, jsonify, send_file, redirect
+import uuid
+from flask import Flask, request, jsonify, send_file, redirect, session
 from dotenv import load_dotenv
 from openai import OpenAI
 from anthropic import Anthropic
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm.attributes import flag_modified
 
 # Load keys from the .env file
 load_dotenv()
 
 app = Flask(__name__)
-SETTINGS_FILE = "settings.json"
+# Secret key is required to encrypt user sessions
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-local-key")
 
-# Concurrency lock for file I/O to prevent corruption
-settings_lock = threading.Lock()
+# Database Configuration (Uses PostgreSQL on servers, SQLite locally)
+# Heroku/Render use 'postgres://' which SQLAlchemy requires as 'postgresql://'
+db_url = os.environ.get("DATABASE_URL", "sqlite:///app_data.db")
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
 
-# Cache for model fetching to reduce latency and API calls
+app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db = SQLAlchemy(app)
+
+# Cache for model fetching
 model_cache = {"data": None, "timestamp": 0}
-CACHE_TTL = 3600  # 1 hour
+CACHE_TTL = 3600
 
-# Lazy-loaded clients to ensure they are only initialized if keys exist
 clients = {"openai": None, "anthropic": None}
 
 
+# ─── Database Models ────────────────────────────────────────────────────────
+class UserSettings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(50), unique=True, nullable=False)
+    columns = db.Column(db.JSON, default=list)
+    presets = db.Column(db.JSON, default=dict)
+
+
+class Comparison(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String(50), nullable=False)
+    company_name = db.Column(db.String(100), nullable=False)
+    data = db.Column(db.JSON, default=list)
+
+
+# Initialize database
+with app.app_context():
+    print("Checking/Creating database...")
+    db.create_all()
+    print("Database initialization complete.")
+
+
+# ─── Helper Functions ───────────────────────────────────────────────────────
 def get_openai_client():
     if not clients["openai"]:
         api_key = os.environ.get("OPENAI_API_KEY")
@@ -44,7 +75,6 @@ def get_anthropic_client():
 
 
 def extract_json(raw_text):
-    """Extracts and parses JSON from a raw LLM response using precise bounding."""
     cleaned = re.sub(r"```json|```", "", raw_text, flags=re.IGNORECASE).strip()
     match = re.search(r"\{[\s\S]*\}", cleaned)
     if not match:
@@ -53,7 +83,6 @@ def extract_json(raw_text):
 
 
 def format_model_label(model_id):
-    """Parses raw API model IDs into clean UI labels with tier preceding version."""
     date_str = ""
     base_name = model_id
 
@@ -71,7 +100,6 @@ def format_model_label(model_id):
     if base_name.startswith("claude"):
         version_match = re.search(r"-(\d+(?:-\d+)?)(?:-|$)", base_name)
         tier_match = re.search(r"-(sonnet|opus|haiku)", base_name)
-
         if version_match and tier_match:
             version = version_match.group(1).replace("-", ".")
             tier = tier_match.group(1).capitalize()
@@ -92,7 +120,6 @@ def format_model_label(model_id):
             if base_name.startswith(old):
                 base_name = base_name.replace(old, new)
                 break
-
         base_name = " ".join(
             [w.capitalize() if w.islower() else w for w in base_name.split("-")]
         )
@@ -101,21 +128,29 @@ def format_model_label(model_id):
         return f"{base_name} ({date_str})"
     return base_name
 
+
+# ─── Middleware ─────────────────────────────────────────────────────────────
+@app.before_request
+def ensure_user_session():
+    """Assigns a unique ID to every visitor to isolate their data."""
+    if "user_id" not in session:
+        session["user_id"] = str(uuid.uuid4())
+
+
 @app.before_request
 def redirect_to_http():
-    """Forces the user back to HTTP if they accidentally attempt to use HTTPS locally."""
-    if request.is_secure:
+    if request.is_secure and "localhost" in request.host:
         url = request.url.replace("https://", "http://", 1)
         return redirect(url, code=301)
 
 
 @app.after_request
 def disable_hsts(response):
-    """Prevents browsers from auto-upgrading to HTTPS for this local domain."""
     response.headers["Strict-Transport-Security"] = "max-age=0; includeSubDomains"
     return response
 
 
+# ─── Routes ─────────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
     return send_file("competitor-research.html")
@@ -123,24 +158,102 @@ def index():
 
 @app.route("/api/settings", methods=["GET", "POST"])
 def handle_settings():
-    """Handles saving and loading configurations safely using a lock."""
+    uid = session["user_id"]
+    user_settings = UserSettings.query.filter_by(user_id=uid).first()
+
+    if not user_settings:
+        # --- MIGRATION BLOCK: Check for old file data ---
+        old_cols, old_presets = [], {}
+        if os.path.exists("settings.json"):
+            try:
+                with open("settings.json", "r") as f:
+                    old_data = json.load(f)
+                    old_cols = old_data.get("columns", [])
+                    old_presets = old_data.get("presets", {})
+            except Exception:
+                pass
+        # --- END MIGRATION ---
+
+        user_settings = UserSettings(user_id=uid, columns=old_cols, presets=old_presets)
+        db.session.add(user_settings)
+        db.session.commit()
+
+    # Handle the saving of new settings/presets
     if request.method == "POST":
-        with settings_lock:
-            with open(SETTINGS_FILE, "w") as f:
-                json.dump(request.json, f, indent=2)
+        data = request.json
+        user_settings.columns = data.get("columns", [])
+        user_settings.presets = data.get("presets", {})
+
+        # Explicitly tell SQLAlchemy the JSON has changed
+        flag_modified(user_settings, "columns")
+        flag_modified(user_settings, "presets")
+
+        db.session.commit()
         return jsonify({"status": "success"})
 
-    if os.path.exists(SETTINGS_FILE):
-        with settings_lock:
-            with open(SETTINGS_FILE, "r") as f:
-                return jsonify(json.load(f))
+    return jsonify({"columns": user_settings.columns, "presets": user_settings.presets})
 
-    return jsonify({"columns": [], "presets": {}})
+
+@app.route("/api/comparisons", methods=["GET", "POST"])
+def handle_comparisons():
+    """Handles comparison data with deep merging per user session."""
+    uid = session["user_id"]
+
+    if request.method == "POST":
+        new_data = request.json
+        for comp_name, new_categories in new_data.items():
+            comp_record = Comparison.query.filter(
+                Comparison.user_id == uid,
+                db.func.lower(Comparison.company_name) == comp_name.lower(),
+            ).first()
+
+            if not comp_record:
+                comp_record = Comparison(user_id=uid, company_name=comp_name, data=[])
+                db.session.add(comp_record)
+
+            existing_data = comp_record.data or []
+            existing_cats = {c["category"].lower(): c for c in existing_data}
+
+            for new_cat in new_categories:
+                cat_key = new_cat["category"].lower()
+
+                if cat_key not in existing_cats:
+                    existing_data.append(new_cat)
+                    existing_cats[cat_key] = new_cat
+                else:
+                    target_cat = existing_cats[cat_key]
+
+                    existing_pos_kws = {
+                        p.get("keyword", "").lower()
+                        for p in target_cat.get("positives", [])
+                    }
+                    for p in new_cat.get("positives", []):
+                        if p.get("keyword", "").lower() not in existing_pos_kws:
+                            target_cat.setdefault("positives", []).append(p)
+                            existing_pos_kws.add(p.get("keyword", "").lower())
+
+                    existing_land_kws = {
+                        l.get("keyword", "").lower()
+                        for l in target_cat.get("landmines", [])
+                    }
+                    for l in new_cat.get("landmines", []):
+                        if l.get("keyword", "").lower() not in existing_land_kws:
+                            target_cat.setdefault("landmines", []).append(l)
+                            existing_land_kws.add(l.get("keyword", "").lower())
+
+            comp_record.data = list(existing_data)
+            flag_modified(comp_record, "data")
+
+        db.session.commit()
+        return jsonify({"status": "success"})
+
+    comparisons = Comparison.query.filter_by(user_id=uid).all()
+    result = {c.company_name: c.data for c in comparisons}
+    return jsonify(result)
 
 
 @app.route("/api/models", methods=["GET"])
 def get_models():
-    """Fetches text models utilizing an in-memory TTL cache."""
     current_time = time.time()
     if model_cache["data"] and (current_time - model_cache["timestamp"] < CACHE_TTL):
         return jsonify(model_cache["data"])
@@ -318,84 +431,6 @@ def verify_data():
             )
         return jsonify({"error": error_msg}), 500
 
-# File-based storage for company comparisons with concurrency control
-COMPARISONS_FILE = "comparisons.json"
-comp_lock = threading.Lock()
-
-# Replace the existing handle_comparisons route in apptest.py
-
-
-@app.route("/api/comparisons", methods=["GET", "POST"])
-def handle_comparisons():
-    """Handles saving and loading individual company comparison data with deep merging."""
-    if request.method == "POST":
-        with comp_lock:
-            try:
-                if os.path.exists(COMPARISONS_FILE):
-                    with open(COMPARISONS_FILE, "r") as f:
-                        data = json.load(f)
-                else:
-                    data = {}
-            except Exception:
-                data = {}
-
-            # Deep merge the new company data into the storage
-            new_data = request.json
-            for comp_name, new_categories in new_data.items():
-                # Find the real case-preserving key if it already exists (e.g., matching "ml6" to "ML6")
-                existing_key = next(
-                    (k for k in data.keys() if k.lower() == comp_name.lower()),
-                    comp_name,
-                )
-
-                if existing_key not in data:
-                    data[existing_key] = new_categories
-                else:
-                    existing_cats = {
-                        c["category"].lower(): c for c in data[existing_key]
-                    }
-                    for new_cat in new_categories:
-                        cat_key = new_cat["category"].lower()
-
-                        # If category is entirely new, append it
-                        if cat_key not in existing_cats:
-                            data[existing_key].append(new_cat)
-                            existing_cats[cat_key] = new_cat
-                        else:
-                            # Merge positives and landmines without duplicating keywords
-                            target_cat = existing_cats[cat_key]
-
-                            existing_pos_kws = {
-                                p.get("keyword", "").lower()
-                                for p in target_cat.get("positives", [])
-                            }
-                            for p in new_cat.get("positives", []):
-                                if p.get("keyword", "").lower() not in existing_pos_kws:
-                                    target_cat.setdefault("positives", []).append(p)
-                                    existing_pos_kws.add(p.get("keyword", "").lower())
-
-                            existing_land_kws = {
-                                l.get("keyword", "").lower()
-                                for l in target_cat.get("landmines", [])
-                            }
-                            for l in new_cat.get("landmines", []):
-                                if (
-                                    l.get("keyword", "").lower()
-                                    not in existing_land_kws
-                                ):
-                                    target_cat.setdefault("landmines", []).append(l)
-                                    existing_land_kws.add(l.get("keyword", "").lower())
-
-            with open(COMPARISONS_FILE, "w") as f:
-                json.dump(data, f, indent=2)
-        return jsonify({"status": "success"})
-
-    if os.path.exists(COMPARISONS_FILE):
-        with comp_lock:
-            with open(COMPARISONS_FILE, "r") as f:
-                return jsonify(json.load(f))
-    return jsonify({})
-
 
 def find_free_port(start_port):
     port = start_port
@@ -413,6 +448,6 @@ if __name__ == "__main__":
         port = find_free_port(3030)
         os.environ["APP_PORT"] = str(port)
 
-    print(f"Server running at http://localhost:{port}")
-    # Always run host 127.0.0.1 for local single-user access
-    app.run(host="127.0.0.1", port=port, debug=False, use_reloader=True)
+    print(f"Server running at http://0.0.0.0:{port}")
+    # Bound to 0.0.0.0 to accept external network traffic on servers
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=True)

@@ -1085,21 +1085,21 @@
           </div>
           <div style="font-size: 14px; font-weight: 700; color: #888; padding: 10px;">VS</div>
           <div style="flex: 1;">
-            <input type="text" id="compBInput" placeholder="Company B (e.g., Savantic)" style="width: 100%; font-weight: 700;">
+            <input type="text" id="compBInput" placeholder="Company B (e.g., Savantic)"
+              style="width: 100%; font-weight: 700;">
           </div>
         </div>
-        </div>
-
+    
         <div class="col-header-row">
           <span class="provider-label">Comparison Categories</span>
         </div>
         <div class="col-builder-container" id="compareColBuilder"></div>
         <button class="btn-add" onclick="addCompareCategory()">+ Add Category</button>
-
-        <button class="search-btn-main" onclick="doCompare()" style="width: 100%; margin-top: 16px;">Run 1-on-1
-          Comparison →</button>
+    
+        <button class="search-btn-main" onclick="doCompare()" style="width: 100%; margin-top: 16px;">Run 1-on-1 Comparison
+          →</button>
       </div>
-
+    
       <div id="resultsCompare"></div>
     </div>
 
@@ -1202,6 +1202,39 @@
     let lastUsedColumns = [];
     let lastResults = null;
 
+    // Logic to load, save, and delete presets
+      function loadPreset(name) {
+        if (!name || !presetState[name]) return;
+        // Deep clone to prevent accidental modification of the preset itself
+        columnState = JSON.parse(JSON.stringify(presetState[name]));
+        renderColumnBuilder();
+        persistSettings();
+
+        // Show/hide delete button based on whether it's a custom preset
+        const deleteBtn = document.getElementById('deletePresetBtn');
+        name === "Standard" ? deleteBtn.classList.add('hidden') : deleteBtn.classList.remove('hidden');
+      }
+
+      function saveCurrentAsPreset() {
+        const name = prompt("Enter a name for this preset:");
+        if (!name) return;
+        presetState[name] = JSON.parse(JSON.stringify(columnState));
+        renderPresetsDropdown();
+        persistSettings();
+        document.getElementById('presetSelect').value = name;
+      }
+
+      function deletePreset() {
+        const name = document.getElementById('presetSelect').value;
+        if (!name || name === "Standard") return;
+        if (confirm(`Delete preset "${name}"?`)) {
+          delete presetState[name];
+          renderPresetsDropdown();
+          persistSettings();
+          loadPreset("Standard");
+        }
+      }
+    
     async function initColumns() {
       try {
         const res = await fetch('/api/settings');
