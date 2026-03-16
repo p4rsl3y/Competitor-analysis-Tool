@@ -1097,6 +1097,20 @@
         </div>
       </button>
 
+      <button class="tab-btn" onclick="switchTab('dashboard')" style="display: flex; align-items: center; gap: 8px;">
+        Dashboard
+        <div class="help-icon-wrap" id="helpDashIcon" onmouseenter="showHelp('helpDash')"
+          onmouseleave="hideHelp('helpDash')" onclick="toggleHelp('helpDash'); event.stopPropagation();">
+          ?
+          <div class="help-popover" id="helpDashPopover" onclick="event.stopPropagation()">
+            <h4>Dashboard</h4>
+            <p>View a consolidated summary of all saved strategic insights and data for specific companies you've
+              researched.
+            </p>
+          </div>
+        </div>
+      </button>
+
       <button class="tab-btn" onclick="switchTab('settings')" style="display: flex; align-items: center; gap: 8px;">
         Settings
         <div class="help-icon-wrap" id="helpSetIcon" onmouseenter="showHelp('helpSet')"
@@ -1254,6 +1268,44 @@
       <div id="resultsCompare"></div>
     </div>
 
+    <div id="tab-dashboard" class="tab-content">
+      <div class="settings-section">
+        <div class="mapping-title">Select Company to View</div>
+        <select id="dashboardCompanySelect" onchange="renderCompanyDashboard(this.value)"
+          style="width: 100%; max-width: 400px; font-weight: 700; font-size: 16px;">
+          <option value="">-- Select a Company --</option>
+        </select>
+      </div>
+
+      <div id="dashboardContent" class="hidden" style="display: flex; flex-direction: column; gap: 24px;">
+
+        <div class="score-card fade-in">
+          <div class="score-card-header" style="cursor: default; background: #111; color: #fff;">
+            <div class="cat-title">Competitive Net Advantage Timeline</div>
+            <div style="font-size: 12px; font-weight: 400; color: #aaa;">Click a data point to include/exclude it from
+              the
+              summary</div>
+          </div>
+          <div style="position: relative; height: 350px; padding: 20px; width: 100%; background: #fff;">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+
+        <div class="score-card fade-in">
+          <div class="score-card-header" style="cursor: default; background: #fafafa;">
+            <div class="cat-title" style="color: #111;">Aggregated Win/Loss Trends</div>
+            <button class="btn-preset" id="generateSummaryBtn" onclick="generateExecutiveSummary()"
+              style="display: none;">✨
+              Generate Executive Summary</button>
+          </div>
+          <div id="aggregatedTrendsContent"
+            style="display: flex; flex-wrap: wrap; gap: 24px; padding: 16px; background: #fff;">
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <div id="tab-settings" class="tab-content">
       <div class="settings-section">
         <div class="settings-row">
@@ -1274,6 +1326,24 @@
 
     <div id="loading" class="loading hidden">
       <div class="loading-header">
+        <div id="loading" class="loading hidden">
+          <div class="loading-header">
+            <div class="loading-icon">🔍</div>
+            <div style="width: 100%; max-width: 300px;">
+              <p class="loading-text" id="loadingTitle">Processing...</p>
+              <div
+                style="width: 100%; height: 6px; background: #e8e8e8; border-radius: 4px; margin-top: 8px; overflow: hidden;">
+                <div id="loadingProgress"
+                  style="width: 0%; height: 100%; background: #ff1400; transition: width 0.4s ease;">
+                </div>
+              </div>
+              <div id="loadingStatusText"
+                style="font-size: 11px; color: #888; margin-top: 6px; font-weight: 700; text-transform: uppercase;">
+                Initializing...</div>
+            </div>
+          </div>
+          <div class="activity-log" id="activityLog"></div>
+        </div>
         <div class="loading-icon">🔍</div>
         <div>
           <p class="loading-text" id="loadingTitle">Processing...</p>
@@ -1285,7 +1355,8 @@
     <div id="errorBox" class="error hidden"></div>
 
   </div>
-
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script>
     // ── Shared State & Setup ──────────────────────────────────────────────────────
@@ -1811,6 +1882,248 @@
       XLSX.writeFile(wb, `verified-${safeTarget}.xlsx`);
     }
 
+    // Fetch stored comparisons on load and populate the dashboard dropdown
+    async function loadStoredComparisons() {
+      try {
+        const res = await fetch('/api/comparisons');
+        if (res.ok) {
+          storedComparisons = await res.json();
+          renderDashboardDropdown();
+        }
+      } catch (e) { console.error("Failed to load comparisons"); }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadStoredComparisons);
+
+    // ── Dashboard Logic ────────────────────────────────────────────────────────
+    let trendChartInstance = null;
+    let currentCompanyEvents = [];
+    let activeEventIds = new Set();
+
+    function renderDashboardDropdown() {
+      const select = document.getElementById('dashboardCompanySelect');
+      const companies = Object.keys(storedComparisons).sort();
+
+      select.innerHTML = '<option value="">-- Select a Company --</option>' +
+        companies.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function renderCompanyDashboard(company) {
+      const container = document.getElementById('dashboardContent');
+      if (!company || !storedComparisons[company] || storedComparisons[company].length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      // Sort the event data chronologically
+      currentCompanyEvents = storedComparisons[company].sort((a, b) => a.timestamp - b.timestamp);
+
+      // Set all data points to active by default
+      activeEventIds = new Set(currentCompanyEvents.map(e => e.id));
+
+      container.classList.remove('hidden');
+
+      renderTrendChart(company);
+      renderAggregatedTrends();
+    }
+
+    function renderTrendChart(company) {
+      const ctx = document.getElementById('trendChart').getContext('2d');
+      if (trendChartInstance) trendChartInstance.destroy();
+
+      const labels = currentCompanyEvents.map(e => {
+        const d = new Date(e.timestamp * 1000);
+        return `${d.toLocaleDateString()} vs ${e.opponent_name}`;
+      });
+
+      const dataPoints = currentCompanyEvents.map(e => e.net_score);
+      const pointColors = currentCompanyEvents.map(e => activeEventIds.has(e.id) ? '#ff1400' : '#cccccc');
+      const pointRadii = currentCompanyEvents.map(e => activeEventIds.has(e.id) ? 6 : 4);
+
+      trendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Net Advantage Score',
+            data: dataPoints,
+            borderColor: '#111',
+            borderWidth: 2,
+            pointBackgroundColor: pointColors,
+            pointBorderColor: '#fff',
+            pointRadius: pointRadii,
+            pointHoverRadius: 8,
+            fill: false,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (event, elements) => {
+            if (elements.length > 0) {
+              const index = elements[0].index;
+              const clickedEvent = currentCompanyEvents[index];
+
+              // Toggle the active state of the clicked event
+              activeEventIds.has(clickedEvent.id) ? activeEventIds.delete(clickedEvent.id) : activeEventIds.add(clickedEvent.id);
+
+              // Visually update the chart points
+              trendChartInstance.data.datasets[0].pointBackgroundColor = currentCompanyEvents.map(e => activeEventIds.has(e.id) ? '#ff1400' : '#cccccc');
+              trendChartInstance.data.datasets[0].pointRadius = currentCompanyEvents.map(e => activeEventIds.has(e.id) ? 6 : 4);
+              trendChartInstance.update();
+
+              // Recalculate the trends immediately
+              renderAggregatedTrends();
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  const ev = currentCompanyEvents[context.dataIndex];
+                  return `Net Score: ${ev.net_score} (vs ${ev.opponent_name})`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: { title: { display: true, text: 'Net Score' } }
+          }
+        }
+      });
+    }
+
+    function renderAggregatedTrends() {
+      const activeEvents = currentCompanyEvents.filter(e => activeEventIds.has(e.id));
+
+      if (activeEvents.length === 0) {
+        document.getElementById('aggregatedTrendsContent').innerHTML = '<div style="padding: 20px; color: #888;">No data points selected. Click points on the graph to include them in the summary.</div>';
+        document.getElementById('generateSummaryBtn').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('generateSummaryBtn').style.display = 'block';
+      const posMap = {}; const landMap = {};
+
+      // Calculate frequency and sum scores for active events
+      activeEvents.forEach(ev => {
+        (ev.data || []).forEach(cat => {
+          (cat.positives || []).forEach(p => {
+            const kw = p.keyword.toLowerCase().trim();
+            if (!posMap[kw]) posMap[kw] = { keyword: p.keyword, totalScore: 0, count: 0 };
+            posMap[kw].totalScore += parseInt(p.impact_score || 0);
+            posMap[kw].count += 1;
+          });
+
+          (cat.landmines || []).forEach(l => {
+            const kw = l.keyword.toLowerCase().trim();
+            if (!landMap[kw]) landMap[kw] = { keyword: l.keyword, totalScore: 0, count: 0 };
+            landMap[kw].totalScore += parseInt(l.severity_score || 0);
+            landMap[kw].count += 1;
+          });
+        });
+      });
+
+      // Compute averages and sort by highest occurrence/impact
+      const topPositives = Object.values(posMap).map(p => ({
+        ...p, avgScore: (p.totalScore / p.count).toFixed(1)
+      })).sort((a, b) => (b.count * b.avgScore) - (a.count * a.avgScore)).slice(0, 5);
+
+      const topLandmines = Object.values(landMap).map(l => ({
+        ...l, avgScore: (l.totalScore / l.count).toFixed(1)
+      })).sort((a, b) => (b.count * b.avgScore) - (a.count * a.avgScore)).slice(0, 5);
+
+      // Render the top 5 traits
+      document.getElementById('aggregatedTrendsContent').innerHTML = `
+        <div style="flex: 1; min-width: 250px; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 16px; border-radius: 8px;">
+          <h4 style="color: #16a34a; margin-bottom: 12px; font-size: 14px;">Top Strengths (Aggregated)</h4>
+          <ul style="list-style: none; padding: 0; margin: 0;">
+            ${topPositives.map(p => `
+              <li style="margin-bottom: 10px; display: flex; gap: 8px; align-items: flex-start;">
+                <span style="color: #16a34a; font-size: 16px;">•</span>
+                <div>
+                  <div style="font-weight: 700; color: #16a34a; font-size: 14px;">${p.keyword}</div>
+                  <div style="font-size: 12px; color: #555;">Appears in ${p.count} comparison(s) • Avg Impact: ${p.avgScore}/10</div>
+                </div>
+              </li>
+            `).join('') || '<div style="font-size:13px; color:#888;">No positive trends identified.</div>'}
+          </ul>
+        </div>
+
+        <div style="flex: 1; min-width: 250px; background: #fff0f0; border: 1px solid #ffb3aa; padding: 16px; border-radius: 8px;">
+          <h4 style="color: #cc1000; margin-bottom: 12px; font-size: 14px;">Top Landmines (Aggregated)</h4>
+          <ul style="list-style: none; padding: 0; margin: 0;">
+            ${topLandmines.map(l => `
+              <li style="margin-bottom: 10px; display: flex; gap: 8px; align-items: flex-start;">
+                <span style="color: #cc1000; font-size: 16px;">•</span>
+                <div>
+                  <div style="font-weight: 700; color: #cc1000; font-size: 14px;">${l.keyword}</div>
+                  <div style="font-size: 12px; color: #555;">Appears in ${l.count} comparison(s) • Avg Severity: ${l.avgScore}/5</div>
+                </div>
+              </li>
+            `).join('') || '<div style="font-size:13px; color:#888;">No negative trends identified.</div>'}
+          </ul>
+        </div>
+      `;
+    }
+
+    async function generateExecutiveSummary() {
+      const company = document.getElementById('dashboardCompanySelect').value;
+      const trendsHtml = document.getElementById('aggregatedTrendsContent').innerText;
+
+      const btn = document.getElementById('generateSummaryBtn');
+      btn.innerText = "⏳ Generating...";
+      btn.disabled = true;
+
+      try {
+        const data = await apiFetch('/api/summary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider: document.getElementById('providerSelect').value,
+            model: document.getElementById('modelSelect').value,
+            company: company,
+            trends: trendsHtml
+          })
+        });
+
+        renderSummaryUI(data);
+      } catch (e) {
+        alert("Failed to generate summary: " + e.message);
+      } finally {
+        btn.innerText = "✨ Generate Executive Summary";
+        btn.disabled = false;
+      }
+    }
+
+    function renderSummaryUI(data) {
+      const container = document.getElementById('aggregatedTrendsContent');
+
+      const chooseHtml = (data.reasons_to_choose || []).map(q => `<li style="margin-bottom:8px; display: flex; gap: 8px;"><span style="color: #16a34a;">•</span> <span>${q}</span></li>`).join('');
+      const hesitateHtml = (data.reasons_to_hesitate || []).map(q => `<li style="margin-bottom:8px; display: flex; gap: 8px;"><span style="color: #cc1000;">•</span> <span>${q}</span></li>`).join('');
+
+      const summaryHtml = `
+        <div style="width: 100%; background: #111; color: #fff; padding: 20px; border-radius: 8px; margin-bottom: 16px;">
+          <h3 style="color: #fff; margin-bottom: 8px; font-size: 16px;">Market Positioning</h3>
+          <p style="font-size: 14px; line-height: 1.5; color: #ddd;">${data.market_positioning}</p>
+        </div>
+        <div style="display: flex; gap: 24px; width: 100%; margin-bottom: 24px;">
+          <div style="flex: 1; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 16px; border-radius: 8px;">
+            <h4 style="margin-bottom: 12px; font-size: 14px; color: #16a34a;">Why Choose Them</h4>
+            <ul style="list-style: none; padding: 0; font-size: 13px; color: #444;">${chooseHtml}</ul>
+          </div>
+          <div style="flex: 1; background: #fff0f0; border: 1px solid #ffb3aa; padding: 16px; border-radius: 8px;">
+            <h4 style="margin-bottom: 12px; font-size: 14px; color: #cc1000;">Why Hesitate</h4>
+            <ul style="list-style: none; padding: 0; font-size: 13px; color: #444;">${hesitateHtml}</ul>
+          </div>
+        </div>
+      `;
+
+      // Prepend the new AI summary above the raw keyword trends
+      container.innerHTML = summaryHtml + container.innerHTML;
+    }
+
     // ── Startup ───────────────────────────────────────────────────────────────────
     fetchModels(); initColumns(); document.getElementById('customPrompt').value = "You are an expert market analyst. Find {count} direct competitors in the same industry as {query} targeting the same customer base.";
     function toggleCustomCount() { document.getElementById('countSelect').value === 'custom' ? show('customCountInput') : hide('customCountInput'); }
@@ -2079,19 +2392,48 @@
     let sessionTokens = 0;
     let lastActionTokens = 0;
 
-    // Global fetch wrapper for automatic token tracking
+    function updateProgress(percent, text) {
+      const bar = document.getElementById('loadingProgress');
+      const status = document.getElementById('loadingStatusText');
+      if (bar) bar.style.width = percent + '%';
+      if (status) status.innerText = text;
+    }
+
+    // Global fetch wrapper for automatic token and progress tracking
     async function apiFetch(url, options) {
-      const res = await fetch(url, options);
-      const data = await res.json();
+      updateProgress(10, "Transmitting request to server...");
 
-      if (data._meta_usage) {
-        sessionTokens += data._meta_usage;
-        lastActionTokens += data._meta_usage;
-        updateTokenWidget();
+      // Simulate progress during the network blackout period
+      let simProgress = 15;
+      const simInterval = setInterval(() => {
+        if (simProgress < 75) {
+          simProgress += 2;
+          updateProgress(simProgress, "Awaiting AI generation...");
+        }
+      }, 1000);
+
+      try {
+        const res = await fetch(url, options);
+        clearInterval(simInterval);
+        updateProgress(80, "Response received, parsing data...");
+
+        const data = await res.json();
+
+        if (data._meta_usage) {
+          sessionTokens += data._meta_usage;
+          lastActionTokens += data._meta_usage;
+          updateTokenWidget();
+        }
+
+        if (!res.ok) throw new Error(data.error || "API Error");
+
+        updateProgress(100, "Rendering interface...");
+        return data;
+      } catch (err) {
+        clearInterval(simInterval);
+        updateProgress(0, "Process failed.");
+        throw err;
       }
-
-      if (!res.ok) throw new Error(data.error || "API Error");
-      return data;
     }
 
     function resetActionTokens() {
@@ -2122,15 +2464,6 @@
     setTimeout(updateTokenWidget, 1000);
 
     let storedComparisons = {};
-
-    // Fetch stored comparisons on load
-    async function loadStoredComparisons() {
-      try {
-        const res = await fetch('/api/comparisons');
-        if (res.ok) storedComparisons = await res.json();
-      } catch (e) { console.error("Failed to load comparisons"); }
-    }
-    document.addEventListener('DOMContentLoaded', loadStoredComparisons)
 
   </script>
 </body>

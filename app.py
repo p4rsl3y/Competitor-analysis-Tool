@@ -47,6 +47,9 @@ class Comparison(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(50), nullable=False)
     company_name = db.Column(db.String(100), nullable=False)
+    opponent_name = db.Column(db.String(100), nullable=False, server_default="Unknown")
+    net_score = db.Column(db.Integer, default=0)
+    timestamp = db.Column(db.Float, default=time.time)
     data = db.Column(db.JSON, default=list)
 
 
@@ -132,7 +135,7 @@ def format_model_label(model_id):
 # ─── Middleware ─────────────────────────────────────────────────────────────
 @app.before_request
 def ensure_user_session():
-    """Assigns a unique ID to every visitor to isolate their data."""
+    """Assigns a unique ID to every visitor to isolate their UI settings."""
     if "user_id" not in session:
         session["user_id"] = str(uuid.uuid4())
 
@@ -196,60 +199,129 @@ def handle_settings():
 
 @app.route("/api/comparisons", methods=["GET", "POST"])
 def handle_comparisons():
-    """Handles comparison data with deep merging per user session."""
-    uid = session["user_id"]
+    """Handles comparison data globally for all users as discrete events."""
+    uid = "global_network_user"
 
     if request.method == "POST":
-        new_data = request.json
-        for comp_name, new_categories in new_data.items():
-            comp_record = Comparison.query.filter(
-                Comparison.user_id == uid,
-                db.func.lower(Comparison.company_name) == comp_name.lower(),
-            ).first()
+        new_data = request.json or {}
+        companies = list(new_data.keys())
 
-            if not comp_record:
-                comp_record = Comparison(user_id=uid, company_name=comp_name, data=[])
-                db.session.add(comp_record)
+        if len(companies) == 2:
+            comp_a, comp_b = companies[0], companies[1]
 
-            existing_data = comp_record.data or []
-            existing_cats = {c["category"].lower(): c for c in existing_data}
+            def calculate_score(cat_data):
+                score = 0
+                for cat in cat_data:
+                    for p in cat.get("positives", []):
+                        score += abs(int(p.get("impact_score", 1)))
+                    for l in cat.get("landmines", []):
+                        score -= abs(int(l.get("severity_score", 1)))
+                return score
 
-            for new_cat in new_categories:
-                cat_key = new_cat["category"].lower()
+            score_a = calculate_score(new_data[comp_a])
+            score_b = calculate_score(new_data[comp_b])
 
-                if cat_key not in existing_cats:
-                    existing_data.append(new_cat)
-                    existing_cats[cat_key] = new_cat
-                else:
-                    target_cat = existing_cats[cat_key]
+            event_a = Comparison(
+                user_id=uid,
+                company_name=comp_a,
+                opponent_name=comp_b,
+                net_score=(score_a - score_b),
+                timestamp=time.time(),
+                data=new_data[comp_a],
+            )
+            db.session.add(event_a)
 
-                    existing_pos_kws = {
-                        p.get("keyword", "").lower()
-                        for p in target_cat.get("positives", [])
-                    }
-                    for p in new_cat.get("positives", []):
-                        if p.get("keyword", "").lower() not in existing_pos_kws:
-                            target_cat.setdefault("positives", []).append(p)
-                            existing_pos_kws.add(p.get("keyword", "").lower())
-
-                    existing_land_kws = {
-                        l.get("keyword", "").lower()
-                        for l in target_cat.get("landmines", [])
-                    }
-                    for l in new_cat.get("landmines", []):
-                        if l.get("keyword", "").lower() not in existing_land_kws:
-                            target_cat.setdefault("landmines", []).append(l)
-                            existing_land_kws.add(l.get("keyword", "").lower())
-
-            comp_record.data = list(existing_data)
-            flag_modified(comp_record, "data")
+            event_b = Comparison(
+                user_id=uid,
+                company_name=comp_b,
+                opponent_name=comp_a,
+                net_score=(score_b - score_a),
+                timestamp=time.time(),
+                data=new_data[comp_b],
+            )
+            db.session.add(event_b)
 
         db.session.commit()
         return jsonify({"status": "success"})
 
     comparisons = Comparison.query.filter_by(user_id=uid).all()
-    result = {c.company_name: c.data for c in comparisons}
+    result = {}
+    for c in comparisons:
+        if c.company_name not in result:
+            result[c.company_name] = []
+        result[c.company_name].append(
+            {
+                "id": c.id,
+                "opponent_name": c.opponent_name,
+                "net_score": c.net_score,
+                "timestamp": c.timestamp,
+                "data": c.data,
+            }
+        )
     return jsonify(result)
+
+
+@app.route("/api/summary", methods=["POST"])
+def generate_executive_summary():
+    data = request.json
+    provider = data.get("provider", "openai")
+    model = data.get("model")
+    company = data.get("company")
+    trends = data.get("trends")
+
+    if provider == "openai" and not get_openai_client():
+        return jsonify({"error": "OpenAI API Key missing."}), 400
+    if provider == "anthropic" and not get_anthropic_client():
+        return jsonify({"error": "Anthropic API Key missing."}), 400
+
+    schema_str = json.dumps(
+        {
+            "market_positioning": "string (2-3 sentences objective summary of where this company sits in the market)",
+            "reasons_to_choose": [
+                "string (Specific reason a buyer would select this company)"
+            ],
+            "reasons_to_hesitate": [
+                "string (Specific reason a buyer might look for alternatives)"
+            ],
+        }
+    )
+
+    system_msg = f"""You are an objective, third-party market analyst. You MUST output ONLY raw JSON.
+    Analyze these aggregated historical win/loss trends for {company} and create an objective, 3rd-person evaluation from a buyer's perspective.
+    Do not take sides. Explain why a customer would choose them, and why a customer might avoid them.
+    You must use exactly this JSON structure:
+    {schema_str}"""
+
+    try:
+        if provider == "openai":
+            client = get_openai_client()
+            response = client.chat.completions.create(
+                model=model,
+                temperature=0.2,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": f"Trends Data: {json.dumps(trends)}"},
+                ],
+            )
+            raw_text = response.choices[0].message.content
+        else:
+            client = get_anthropic_client()
+            message = client.messages.create(
+                model=model,
+                temperature=0.2,
+                max_tokens=2000,
+                system=system_msg,
+                messages=[
+                    {"role": "user", "content": f"Trends Data: {json.dumps(trends)}"}
+                ],
+            )
+            raw_text = message.content[0].text
+
+        return jsonify(extract_json(raw_text))
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/models", methods=["GET"])
