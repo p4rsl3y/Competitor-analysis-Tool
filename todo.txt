@@ -1,7 +1,17 @@
 - Make usable by multiple people, hostable on a server, etc
     - made render.com account link to github repo to host from there? check up in gemini chat to see
-        
+
 - Add dashboardy
     look at specific company gathered data
 - perp. storage
     -.db for presets is done now need to add gatherd inf from one on one to this
+    
+- RAG for one on one comparisson, 3rd party or built in
+
+- add progress meter (%) that accurately meausures progress.
+
+- add help '?' buttons to most options to describe functionality
+    - added ? to reseach columns
+    - added ? to all tabs
+    - added ? to advanced prompt
+    

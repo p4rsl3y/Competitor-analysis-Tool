@@ -332,6 +332,7 @@ def research():
             client = get_openai_client()
             response = client.chat.completions.create(
                 model=model,
+                temperature=0.0,
                 response_format={"type": "json_object"},
                 messages=[
                     {"role": "system", "content": system_msg},
@@ -344,6 +345,7 @@ def research():
             client = get_anthropic_client()
             message = client.messages.create(
                 model=model,
+                temperature=0.0,
                 max_tokens=4000,
                 system=system_msg,
                 messages=[{"role": "user", "content": prompt}],
