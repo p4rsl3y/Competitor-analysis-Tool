@@ -25,3 +25,4 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 Werkzeug==3.1.6
 Flask-SQLAlchemy==3.1.1
+gunicorn==21.2.0
