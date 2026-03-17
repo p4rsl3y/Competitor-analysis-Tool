@@ -947,6 +947,14 @@
     startLog(`Analyzing strategic positioning: ${compA} vs ${compB}...`);
 
     const schemaProps = {
+      "company_A_metadata": {
+        "region": "string strictly matching one: DACH, Nordics, Europe, RoW",
+        "category": "string strictly matching one: Enterprise IT & Strategy Giant, High-End Software Engineering House, Pure Data & AI Consultancy, AI SaaS Product, Generalist Dev Agency"
+      },
+      "company_B_metadata": {
+        "region": "string strictly matching one: DACH, Nordics, Europe, RoW",
+        "category": "string strictly matching one: Enterprise IT & Strategy Giant, High-End Software Engineering House, Pure Data & AI Consultancy, AI SaaS Product, Generalist Dev Agency"
+      },
       "categories": [{
         "category_name": "string",
         "comp_A_positives": [{ "keyword": "string (Max 3 words)", "impact_score": "integer (1 to 10)", "search_query": "string (Specific Google search query)" }],
@@ -979,9 +987,16 @@
       renderInteractiveCompare(compA, compB);
 
       // Continue saving to local storage in the background for the future Battlecard feature
-      const payload = {};
-      payload[compA] = data.categories.map(c => ({ category: c.category_name, positives: c.comp_A_positives, landmines: c.comp_A_landmines }));
-      payload[compB] = data.categories.map(c => ({ category: c.category_name, positives: c.comp_B_positives, landmines: c.comp_B_landmines }));
+      const payload = {
+        metadata: {
+          [compA]: data.company_A_metadata,
+          [compB]: data.company_B_metadata
+        },
+        comparisons: {}
+      };
+
+      payload.comparisons[compA] = data.categories.map(c => ({ category: c.category_name, positives: c.comp_A_positives, landmines: c.comp_A_landmines }));
+      payload.comparisons[compB] = data.categories.map(c => ({ category: c.category_name, positives: c.comp_B_positives, landmines: c.comp_B_landmines }));
 
       await fetch('/api/comparisons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       loadStoredComparisons();

@@ -90,6 +90,12 @@ class Comparison(db.Model):
     data = db.Column(db.JSON, default=list)
 
 
+class CompanyInfo(db.Model):
+    name = db.Column(db.String(100), primary_key=True)
+    region = db.Column(db.String(50), server_default="RoW")
+    category = db.Column(db.String(100), server_default="Unknown")
+
+
 # Initialize database
 with app.app_context():
     print("Checking/Creating database...")
@@ -276,11 +282,24 @@ def handle_comparisons():
     uid = session["user_id"]
 
     if request.method == "POST":
-        new_data = request.json or {}
+        req_data = request.json or {}
+        metadata = req_data.get("metadata", {})
+        new_data = req_data.get("comparisons", req_data)
         companies = list(new_data.keys())
 
         if len(companies) == 2:
             comp_a, comp_b = companies[0], companies[1]
+
+            for comp_name in [comp_a, comp_b]:
+                if comp_name in metadata:
+                    info = CompanyInfo.query.get(comp_name)
+                    if not info:
+                        info = CompanyInfo(name=comp_name)
+                        db.session.add(info)
+                    info.region = metadata[comp_name].get("region", "RoW")
+                    info.category = metadata[comp_name].get(
+                        "category", "Generalist Dev Agency"
+                    )
 
             def calculate_score(cat_data):
                 score = 0
