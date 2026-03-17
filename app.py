@@ -363,14 +363,14 @@ def admin_logout():
     return jsonify({"error": "Not logged in as admin"}), 400
 
 
-@app.route("/api/admin/api_keys", methods=["GET", "POST"])
+@app.route("/api/admin/api_keys", methods=["GET", "POST", "DELETE"])
 def admin_api_keys():
     """Allows an admin to manage the global API keys."""
     if not is_admin_authenticated():
         return jsonify({"error": "Unauthorized"}), 403
 
     settings = GlobalSettings.query.get(1)
-    if not settings:  # Should not happen due to startup check, but good practice
+    if not settings:
         settings = GlobalSettings(id=1)
         db.session.add(settings)
         db.session.commit()
@@ -397,6 +397,25 @@ def admin_api_keys():
             settings.encrypted_anthropic_key = encrypt_key(anthropic_key)
         db.session.commit()
         return jsonify({"status": "success", "message": "Global API keys updated"})
+
+    elif request.method == "DELETE":
+        data = request.json
+        provider = data.get("provider")
+
+        if provider == "openai":
+            settings.encrypted_openai_key = None
+        elif provider == "anthropic":
+            settings.encrypted_anthropic_key = None
+        else:
+            return jsonify({"error": "Invalid provider specified"}), 400
+
+        db.session.commit()
+        return jsonify(
+            {
+                "status": "success",
+                "message": f"Global {provider.capitalize()} API key deleted",
+            }
+        )
 
 
 @app.route("/api/admin/comparisons", methods=["GET", "DELETE"])

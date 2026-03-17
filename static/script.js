@@ -1310,6 +1310,8 @@
     document.getElementById('unlockAdminBtn').addEventListener('click', () => { isAdminAuthenticated ? lockAdminPanel() : unlockAdminPanel(); });
     document.getElementById('saveApiKeysBtn').addEventListener('click', saveApiKeys);
     document.getElementById('deleteAllComparisonsBtn').addEventListener('click', deleteAllComparisons);
+    document.getElementById('deleteOpenAIKeyBtn').addEventListener('click', () => deleteApiKey('openai'));
+    document.getElementById('deleteAnthropicKeyBtn').addEventListener('click', () => deleteApiKey('anthropic'));
 
     // Settings Tab
     document.getElementById('providerSelect').addEventListener('change', onProviderChange);
@@ -1428,13 +1430,7 @@
         const anthropicInput = document.getElementById('userAnthropicKeyInput');
 
         openAIInput.placeholder = keyData.openai_key_set ? 'A global OpenAI key is set' : 'Enter global OpenAI API Key';
-        openAIInput.style.width = '100%';
-        openAIInput.style.boxSizing = 'border-box';
-        openAIInput.style.marginBottom = '8px';
-
         anthropicInput.placeholder = keyData.anthropic_key_set ? 'A global Anthropic key is set' : 'Enter global Anthropic API Key';
-        anthropicInput.style.width = '100%';
-        anthropicInput.style.boxSizing = 'border-box';
       }
     } catch (error) {
       console.error('Failed to fetch global API key status:', error);
@@ -1493,6 +1489,29 @@
     } catch (error) { console.error('Failed to save API keys:', error); alert('Error saving API keys.'); }
   }
 
+  async function deleteApiKey(provider) {
+    if (!confirm(`Are you sure you want to delete the global ${provider === 'openai' ? 'OpenAI' : 'Anthropic'} API key?`)) return;
+
+    try {
+      const res = await fetch('/api/admin/api_keys', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: provider })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        showToast(data.message);
+        renderAdminPanel(); // Refresh placeholders
+      } else {
+        showToast(data.error || 'Failed to delete API key.', true);
+      }
+    } catch (error) {
+      console.error('Failed to delete API key:', error);
+      showToast('Error deleting API key.', true);
+    }
+  }
+  
   async function deleteComparison(id) {
     if (!isAdminAuthenticated) return;
     try {
