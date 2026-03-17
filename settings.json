@@ -5,48 +5,62 @@
       "id": 100,
       "instructions": "Region of company HQ",
       "name": "Region",
-      "tags": "DACH, Nordics, BeNeLux, Europe, RoW"
+      "tags": "DACH, Nordics, BeNeLux, Europe, RoW",
+      "_safeKey": "region"
     },
     {
       "format": "text",
       "id": 101,
       "instructions": "City where the company HQ is located",
       "name": "HQ",
-      "tags": ""
+      "tags": "",
+      "_safeKey": "hq"
     },
     {
       "format": "number",
       "id": 102,
       "instructions": "size of the company as the closet multiple of 50",
       "name": "Size",
-      "tags": "<50, 51-200, 201-1000, >1000"
+      "tags": "<50, 51-200, 201-1000, >1000",
+      "_safeKey": "size"
     },
     {
       "format": "tags",
       "id": 103,
       "instructions": "Describe the core pricing model relative to the industry.",
       "name": "Pricing",
-      "tags": "High, Medium, Low"
+      "tags": "High, Medium, Low",
+      "_safeKey": "pricing"
     },
     {
       "format": "tags",
       "id": 104,
       "instructions": "Category of business",
       "name": "Business Type",
-      "tags": "Enterprise IT & Strategy Giant, High-End Software Engineering House, Pure Data & AI Consultancy, AI SaaS Product, Generalist Dev Agency"
+      "tags": "Enterprise IT & Strategy Giant, High-End Software Engineering House, Pure Data & AI Consultancy, AI SaaS Product, Generalist Dev Agency",
+      "_safeKey": "business_type"
     },
     {
       "format": "tags",
       "id": 105,
       "instructions": "Primary industries served.",
       "name": "Top Verticals",
-      "tags": "CPG, Public, FSI, Utilities, CMT, HR & Professional Services, Life Sciences, Other"
+      "tags": "CPG, Public, FSI, Utilities, CMT, HR & Professional Services, Life Sciences, Other",
+      "_safeKey": "top_verticals"
     },
     {
       "format": "text",
       "id": 106,
       "instructions": "Website of the company",
       "name": "Website",
+      "tags": "",
+      "_safeKey": "website"
+    },
+    {
+      "id": 1773319287205,
+      "name": "Comparison",
+      "format": "text",
+      "instructions": "One sentence comparison with company",
       "tags": ""
     }
   ],

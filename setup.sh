@@ -19,7 +19,7 @@ fi
 # 2. Create the Virtual Environment if it doesn't exist
 if [ ! -d "venv" ]; then
     echo "Creating a fresh virtual environment..."
-    python3 -m venv venv
+    python3.12 -m venv venv
 fi
 
 # 3. Install dependencies from requirements.txt

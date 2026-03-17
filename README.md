@@ -1,8 +1,11 @@
-# Competitor Research Tool (v0.3)
+# Competitor Research Tool (v0.4)
 A specialized competitive intelligence analyst tool that leverages Large Language Models (LLMs) to research and map the landscape of any company or product. It dynamically generates structured data based on custom-defined columns and exports results to professional formats.
 
+Your erperience and results may vary greatly on the AI model used, I've personally gotten great results with Claude Sonnet.
+
 ### Requirements
-Python
+Python3
+OpenAI or Anthropic api key
 
 ## Installation
 To get this project running on your local machine, follow these steps:
@@ -13,12 +16,16 @@ git clone <https://github.com/p4rsl3y/Competitor-analysis-Tool-.git>
 ```
 
 ### Make the setup script executable and run it
-1. Run these commands in your terminal
+1. Run this commands in your terminal
 ```
-cd competitor-analysis-tool
-chmod +x setup.sh
 ./setup.sh
 ```
+
+    If the command does not run the setup file run this command and try again.
+    ```
+    cd competitor-analysis-tool
+    chmod +x setup.sh
+    ```
 
 2. Configure API Keys
 The setup script creates a .env file based on the template. Open it and add your credentials:
@@ -32,7 +39,7 @@ source venv/bin/activate
 ```
 ### Launch the Flask server
 ```
-python app.py
+python3 app.py
 ```
 Visit <http://127.0.0.1:3030> in your browser.
 
@@ -46,3 +53,7 @@ Custom Research Prompts: Advanced mode allows users to override the base prompt 
 Export to Excel: One-click generation of formatted .xlsx reports for research documentation.
 
 Load competitor lists from excel filetypes to compare and analyse old data
+
+1 on 1 comparison between companies on user defined categories
+
+User dashboard to analyse previous 1 on 1 comparisons with an executive summary.
