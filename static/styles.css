@@ -55,6 +55,7 @@ h1 {
   justify-content: center;
   font-size: 18px;
 }
+
 .icon svg {
   width: 20px;
   height: 20px;
@@ -507,10 +508,61 @@ h1 {
   letter-spacing: 0.08em;
 }
 
+/* Toast Notification System */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  background: #111;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slideUpFadeIn 0.3s ease forwards;
+  pointer-events: auto;
+}
+
+.toast.error {
+  background: #cc1000;
+  color: #ffffff;
+}
+
+.toast.fade-out {
+  animation: slideDownFadeOut 0.3s ease forwards;
+}
+
+@keyframes slideUpFadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDownFadeOut {
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
 /* Inputs & Selects */
 input[type="text"],
 input[type="number"],
-input[type="file"] {
+input[type="file"],
+input[type="password"] {
   flex: 1;
   background: #fff;
   border: 1px solid #e8e8e8;
@@ -523,7 +575,8 @@ input[type="file"] {
 }
 
 input[type="text"]:focus,
-input[type="number"]:focus {
+input[type="number"]:focus,
+input[type="password"]:focus {
   outline: none;
   border-color: #ff1400;
 }

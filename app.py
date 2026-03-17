@@ -4,10 +4,12 @@ import re
 import socket
 import time
 import uuid
+import sys
 from flask import Flask, request, jsonify, send_file, redirect, session
 from dotenv import load_dotenv
 from openai import OpenAI
 from anthropic import Anthropic
+from cryptography.fernet import Fernet
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -18,6 +20,27 @@ app = Flask(__name__)
 # Secret key is required to encrypt user sessions
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "super-secret-local-key")
 
+# Encryption setup
+encryption_key = os.environ.get("ENCRYPTION_KEY")
+if encryption_key:
+    try:
+        fernet = Fernet(encryption_key.encode())
+    except ValueError:
+        print("\n--- FATAL STARTUP ERROR ---")
+        print("The ENCRYPTION_KEY in your .env file is invalid.")
+        print("It must be a 32-byte URL-safe base64-encoded key.")
+        new_key = Fernet.generate_key().decode()
+        print(
+            "\nTo fix this, copy the following line and paste it into your .env file, replacing the old key:\n"
+        )
+        print(f"ENCRYPTION_KEY={new_key}\n")
+        sys.exit(1)
+else:
+    fernet = None
+    print(
+        "WARNING: ENCRYPTION_KEY is not set in the .env file. API key storage will be disabled."
+    )
+
 # Database Configuration (Uses PostgreSQL on servers, SQLite locally)
 # Heroku/Render use 'postgres://' which SQLAlchemy requires as 'postgresql://'
 db_url = os.environ.get("DATABASE_URL", "sqlite:///app_data.db")
@@ -26,26 +49,40 @@ if db_url.startswith("postgres://"):
 
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["PERMANENT_SESSION_LIFETIME"] = 2592000  # 30 days
 db = SQLAlchemy(app)
 
 # Cache for model fetching
 model_cache = {"data": None, "timestamp": 0}
 CACHE_TTL = 3600
-
 clients = {"openai": None, "anthropic": None}
 
 
 # ─── Database Models ────────────────────────────────────────────────────────
+class User(db.Model):
+    id = db.Column(db.String(50), primary_key=True)
+    settings = db.relationship("UserSettings", backref="user", uselist=False)
+    comparisons = db.relationship("Comparison", backref="user")
+
+
 class UserSettings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String(50), unique=True, nullable=False)
+    user_id = db.Column(
+        db.String(50), db.ForeignKey("user.id"), unique=True, nullable=False
+    )
     columns = db.Column(db.JSON, default=list)
     presets = db.Column(db.JSON, default=dict)
 
 
+class GlobalSettings(db.Model):
+    id = db.Column(db.Integer, primary_key=True, default=1)
+    encrypted_openai_key = db.Column(db.String(256))
+    encrypted_anthropic_key = db.Column(db.String(256))
+
+
 class Comparison(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String(50), nullable=False)
+    user_id = db.Column(db.String(50), db.ForeignKey("user.id"), nullable=False)
     company_name = db.Column(db.String(100), nullable=False)
     opponent_name = db.Column(db.String(100), nullable=False, server_default="Unknown")
     net_score = db.Column(db.Integer, default=0)
@@ -57,24 +94,53 @@ class Comparison(db.Model):
 with app.app_context():
     print("Checking/Creating database...")
     db.create_all()
+    if not GlobalSettings.query.get(1):
+        db.session.add(GlobalSettings(id=1))
+        db.session.commit()
     print("Database initialization complete.")
 
 
 # ─── Helper Functions ───────────────────────────────────────────────────────
-def get_openai_client():
-    if not clients["openai"]:
-        api_key = os.environ.get("OPENAI_API_KEY")
-        if api_key:
-            clients["openai"] = OpenAI(api_key=api_key)
-    return clients["openai"]
+def encrypt_key(key):
+    if not fernet:
+        raise Exception("ENCRYPTION_KEY not set.")
+    return fernet.encrypt(key.encode()).decode()
 
 
-def get_anthropic_client():
-    if not clients["anthropic"]:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if api_key:
-            clients["anthropic"] = Anthropic(api_key=api_key)
-    return clients["anthropic"]
+def decrypt_key(encrypted_key):
+    if not fernet:
+        raise Exception("ENCRYPTION_KEY not set.")
+    if not encrypted_key:
+        return None
+    return fernet.decrypt(encrypted_key.encode()).decode()
+
+
+def get_global_api_key(provider):
+    settings = GlobalSettings.query.get(1)
+    if not settings:
+        return None
+
+    encrypted_key = (
+        settings.encrypted_openai_key
+        if provider == "openai"
+        else settings.encrypted_anthropic_key
+    )
+    if not encrypted_key:
+        return None
+
+    try:
+        return decrypt_key(encrypted_key)
+    except Exception:
+        return None
+
+
+def get_client(provider, user_id):
+    api_key = get_global_api_key(provider)
+    if not api_key:
+        return None
+    return (
+        OpenAI(api_key=api_key) if provider == "openai" else Anthropic(api_key=api_key)
+    )
 
 
 def extract_json(raw_text):
@@ -137,7 +203,13 @@ def format_model_label(model_id):
 def ensure_user_session():
     """Assigns a unique ID to every visitor to isolate their UI settings."""
     if "user_id" not in session:
-        session["user_id"] = str(uuid.uuid4())
+        user_id = str(uuid.uuid4())
+        session["user_id"] = user_id
+        session.permanent = True  # Make the session cookie long-lasting
+        # Create a corresponding user in the database
+        new_user = User(id=user_id)
+        db.session.add(new_user)
+        db.session.commit()
 
 
 @app.before_request
@@ -162,6 +234,7 @@ def index():
 @app.route("/api/settings", methods=["GET", "POST"])
 def handle_settings():
     uid = session["user_id"]
+
     user_settings = UserSettings.query.filter_by(user_id=uid).first()
 
     if not user_settings:
@@ -200,7 +273,7 @@ def handle_settings():
 @app.route("/api/comparisons", methods=["GET", "POST"])
 def handle_comparisons():
     """Handles comparison data globally for all users as discrete events."""
-    uid = "global_network_user"
+    uid = session["user_id"]
 
     if request.method == "POST":
         new_data = request.json or {}
@@ -244,7 +317,7 @@ def handle_comparisons():
         db.session.commit()
         return jsonify({"status": "success"})
 
-    comparisons = Comparison.query.filter_by(user_id=uid).all()
+    comparisons = Comparison.query.all()  # Admin dashboard shows all comparisons
     result = {}
     for c in comparisons:
         if c.company_name not in result:
@@ -261,6 +334,112 @@ def handle_comparisons():
     return jsonify(result)
 
 
+# ─── Admin Panel Endpoints ──────────────────────────────────────────────────
+def is_admin_authenticated():
+    return session.get("is_admin", False)
+
+
+@app.route("/api/admin/login", methods=["POST"])
+def admin_login():
+    password = request.json.get("password")
+    admin_password_env = os.environ.get("ADMIN_PASSWORD")
+
+    if not admin_password_env:
+        return jsonify({"error": "ADMIN_PASSWORD not set in .env"}), 400
+
+    if password == admin_password_env:
+        session["is_admin"] = True
+        return jsonify({"status": "success", "message": "Admin logged in"})
+    else:
+        session["is_admin"] = False
+        return jsonify({"error": "Invalid admin password"}), 401
+
+
+@app.route("/api/admin/logout", methods=["POST"])
+def admin_logout():
+    if is_admin_authenticated():
+        session["is_admin"] = False
+        return jsonify({"status": "success", "message": "Admin panel locked"})
+    return jsonify({"error": "Not logged in as admin"}), 400
+
+
+@app.route("/api/admin/api_keys", methods=["GET", "POST"])
+def admin_api_keys():
+    """Allows an admin to manage the global API keys."""
+    if not is_admin_authenticated():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    settings = GlobalSettings.query.get(1)
+    if not settings:  # Should not happen due to startup check, but good practice
+        settings = GlobalSettings(id=1)
+        db.session.add(settings)
+        db.session.commit()
+
+    if request.method == "GET":
+        return jsonify(
+            {
+                "openai_key_set": bool(settings.encrypted_openai_key),
+                "anthropic_key_set": bool(settings.encrypted_anthropic_key),
+            }
+        )
+
+    elif request.method == "POST":
+        data = request.json
+        openai_key = data.get("openai_key")
+        anthropic_key = data.get("anthropic_key")
+
+        if not fernet:
+            return jsonify({"error": "ENCRYPTION_KEY not set on server."}), 500
+
+        if openai_key:
+            settings.encrypted_openai_key = encrypt_key(openai_key)
+        if anthropic_key:
+            settings.encrypted_anthropic_key = encrypt_key(anthropic_key)
+        db.session.commit()
+        return jsonify({"status": "success", "message": "Global API keys updated"})
+
+
+@app.route("/api/admin/comparisons", methods=["GET", "DELETE"])
+def admin_comparisons():
+    if not is_admin_authenticated():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    if request.method == "GET":
+        comparisons = Comparison.query.all()
+        return jsonify(
+            [
+                {
+                    "id": c.id,
+                    "user_id": c.user_id,
+                    "company_name": c.company_name,
+                    "opponent_name": c.opponent_name,
+                    "net_score": c.net_score,
+                    "timestamp": c.timestamp,
+                }
+                for c in comparisons
+            ]
+        )
+    elif request.method == "DELETE":
+        comparison_id = request.json.get("id")
+        if comparison_id:
+            comparison = Comparison.query.get(comparison_id)
+            if comparison:
+                db.session.delete(comparison)
+                db.session.commit()
+                return jsonify(
+                    {
+                        "status": "success",
+                        "message": f"Comparison {comparison_id} deleted",
+                    }
+                )
+            return jsonify({"error": "Comparison not found"}), 404
+
+        # If no specific ID, delete all
+        db.session.query(Comparison).delete()
+        db.session.commit()
+        return jsonify({"status": "success", "message": "All comparisons deleted"})
+
+
 @app.route("/api/summary", methods=["POST"])
 def generate_executive_summary():
     data = request.json
@@ -269,10 +448,12 @@ def generate_executive_summary():
     company = data.get("company")
     trends = data.get("trends")
 
-    if provider == "openai" and not get_openai_client():
-        return jsonify({"error": "OpenAI API Key missing."}), 400
-    if provider == "anthropic" and not get_anthropic_client():
-        return jsonify({"error": "Anthropic API Key missing."}), 400
+    client = get_client(provider, session["user_id"])
+    if not client:
+        return (
+            jsonify({"error": f"{provider.capitalize()} API Key missing or invalid."}),
+            400,
+        )
 
     schema_str = json.dumps(
         {
@@ -294,7 +475,6 @@ def generate_executive_summary():
 
     try:
         if provider == "openai":
-            client = get_openai_client()
             response = client.chat.completions.create(
                 model=model,
                 temperature=0.2,
@@ -306,7 +486,6 @@ def generate_executive_summary():
             )
             raw_text = response.choices[0].message.content
         else:
-            client = get_anthropic_client()
             message = client.messages.create(
                 model=model,
                 temperature=0.2,
@@ -332,13 +511,18 @@ def get_models():
 
     models = {"openai": [], "anthropic": []}
 
+    model_cache["data"] = models
+    model_cache["timestamp"] = current_time
+
+    # We can use the server's key for listing models, as it's not a sensitive operation
     try:
-        client = get_openai_client()
-        if client:
+        oai_key = get_global_api_key("openai") or os.environ.get("OPENAI_API_KEY")
+        if oai_key:
+            client = OpenAI(api_key=oai_key)
             oai_data = client.models.list()
             chat_models = [
                 m.id
-                for m in oai_data.data
+                for m in oai_data
                 if ("gpt-4" in m.id or "o1" in m.id or "o3" in m.id)
                 and "realtime" not in m.id
                 and "audio" not in m.id
@@ -347,6 +531,8 @@ def get_models():
             models["openai"] = [
                 {"value": m, "label": format_model_label(m)} for m in chat_models
             ]
+        else:
+            raise ValueError("No OpenAI API key found.")
     except Exception:
         models["openai"] = [
             {"value": "gpt-4o", "label": "GPT-4o (Fallback)"},
@@ -354,14 +540,17 @@ def get_models():
         ]
 
     try:
-        client = get_anthropic_client()
-        if client:
+        ant_key = get_global_api_key("anthropic") or os.environ.get("ANTHROPIC_API_KEY")
+        if ant_key:
+            client = Anthropic(api_key=ant_key)
             ant_data = client.models.list()
-            c_models = [m.id for m in ant_data.data if "claude" in m.id]
+            c_models = [m.id for m in ant_data if "claude" in m.id]
             c_models.sort(reverse=True)
             models["anthropic"] = [
                 {"value": m, "label": format_model_label(m)} for m in c_models
             ]
+        else:
+            raise ValueError("No Anthropic API key found.")
     except Exception:
         models["anthropic"] = [
             {
@@ -389,10 +578,16 @@ def research():
 
     schema_str = json.dumps(schema) if isinstance(schema, dict) else schema
 
-    if provider == "openai" and not get_openai_client():
-        return jsonify({"error": "OpenAI API Key missing."}), 400
-    if provider == "anthropic" and not get_anthropic_client():
-        return jsonify({"error": "Anthropic API Key missing."}), 400
+    client = get_client(provider, session["user_id"])
+    if not client:
+        return (
+            jsonify(
+                {
+                    "error": f"{provider.capitalize()} API Key missing or invalid. Please set one in Settings."
+                }
+            ),
+            400,
+        )
 
     system_msg = f"""You are a competitive intelligence analyst. You MUST output ONLY raw JSON, with no markdown formatting. 
     The JSON schema below contains instructions in its value fields. You must REPLACE these instruction strings with the actual researched data.
@@ -401,7 +596,6 @@ def research():
 
     try:
         if provider == "openai":
-            client = get_openai_client()
             response = client.chat.completions.create(
                 model=model,
                 temperature=0.0,
@@ -414,7 +608,6 @@ def research():
             raw_text = response.choices[0].message.content
             total_tokens = response.usage.total_tokens
         else:
-            client = get_anthropic_client()
             message = client.messages.create(
                 model=model,
                 temperature=0.0,
@@ -450,10 +643,16 @@ def verify_data():
 
     schema_str = json.dumps(schema) if isinstance(schema, dict) else schema
 
-    if provider == "openai" and not get_openai_client():
-        return jsonify({"error": "OpenAI API Key missing."}), 400
-    if provider == "anthropic" and not get_anthropic_client():
-        return jsonify({"error": "Anthropic API Key missing."}), 400
+    client = get_client(provider, session["user_id"])
+    if not client:
+        return (
+            jsonify(
+                {
+                    "error": f"{provider.capitalize()} API Key missing or invalid. Please set one in Settings."
+                }
+            ),
+            400,
+        )
 
     system_msg = f"""You are an expert data verification analyst. You MUST output ONLY raw JSON.
 
@@ -470,7 +669,6 @@ def verify_data():
 
     try:
         if provider == "openai":
-            client = get_openai_client()
             response = client.chat.completions.create(
                 model=model,
                 response_format={"type": "json_object"},
@@ -482,7 +680,6 @@ def verify_data():
             raw_text = response.choices[0].message.content
             total_tokens = response.usage.total_tokens
         else:
-            client = get_anthropic_client()
             message = client.messages.create(
                 model=model,
                 max_tokens=4000,

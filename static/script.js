@@ -28,8 +28,14 @@
 
   function populateModels(provider) {
     const select = document.getElementById('modelSelect');
-    if (!MODELS[provider] || MODELS[provider].length === 0) return select.innerHTML = '<option>Loading...</option>';
-    select.innerHTML = MODELS[provider].map(m => `<option value="${m.value}">${m.label}</option>`).join('');
+    if (!MODELS[provider] || MODELS[provider].length === 0) {
+      select.innerHTML = '<option>Loading...</option>';
+    } else {
+      select.innerHTML = MODELS[provider].map(m => `<option value="${m.value}">${m.label}</option>`).join('');
+    }
+
+    // Explicitly update the token widget to reflect the new default model
+    updateTokenWidget();
   }
 
   function onProviderChange() { populateModels(document.getElementById('providerSelect').value); }
@@ -152,8 +158,11 @@
     } else {
       // Close any other menu that is currently pinned
       if (activeHelpId) {
-        document.getElementById(activeHelpId + 'Icon').classList.remove('pinned');
-        document.getElementById(activeHelpId + 'Popover').classList.remove('visible');
+        const oldIcon = document.getElementById(activeHelpId + 'Icon');
+        const oldPopover = document.getElementById(activeHelpId + 'Popover');
+        if (oldIcon) oldIcon.classList.remove('pinned');
+        if (oldPopover) oldPopover.classList.remove('visible');
+        document.removeEventListener('click', closeHelpOnOutsideClick);
       }
 
       // Pin the new menu
@@ -507,7 +516,7 @@
     const rowsHtml = records.map(rec => {
       let tds = `<td><div class="results-company" style="font-size:15px; margin:0;">${rec.entity_name}</div></td>`;
 
-        if (checkComp) { // This block was missing the `rec.is_competitor` check
+      if (checkComp) {
         const badgeClass = rec.is_competitor ? 'status-corrected' : 'status-unchanged';
         tds += `<td><span class="status-badge ${badgeClass}">${rec.is_competitor ? 'COMPETITOR' : 'NOT COMPETITOR'}</span></td>`;
       }
@@ -532,13 +541,12 @@
 
     document.getElementById('resultsVerify').innerHTML = `
       <div class="results-header fade-in">
-        <div><div class="results-company">Verified (${records.length}/${uploadedExcelData.length})</div></div>
-        <button class="export-btn" id="exportVerifyBtn">Export ↓</button>
+        <div class="results-company">Verified (${records.length}/${uploadedExcelData.length})</div>
+        <button class="export-btn" onclick="exportExcelVerify()">Export ↓</button>
       </div>
       <div class="table-wrap fade-in"><table><thead><tr>${ths}</tr></thead><tbody>${rowsHtml}</tbody></table></div>
     `;
     show('resultsVerify');
-      document.getElementById('exportVerifyBtn').addEventListener('click', exportExcelVerify);
   }
 
   function exportExcelVerify() {
@@ -1024,7 +1032,7 @@
                                 <span class="keyword" style="font-weight: 700; color: ${isPositive ? '#16a34a' : '#cc1000'}; font-size: 14px;"></span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 6px;">
-                                <a href="https://www.google.com/search?q=${query}" target="_blank" style="font-size: 11px; color: #0284c7; text-decoration: none;">[Verify]</a>
+                                <a class="verify-link" href="https://www.google.com/search?q=${query}" target="_blank" style="font-size: 11px; color: #0284c7; text-decoration: none;">[Verify]</a>
                             </div>
                         </div>`;
           li.querySelector('.keyword').textContent = attr.keyword; // Safe insertion
@@ -1036,7 +1044,7 @@
           input.value = score;
           input.dataset.company = companyKey; // 'A' or 'B'
 
-          li.querySelector('.verify-link').nextElementSibling.appendChild(input);
+          li.querySelector('.verify-link').parentElement.appendChild(input);
           ul.appendChild(li);
         });
         return ul;
@@ -1191,8 +1199,7 @@
   // Bind the widget update to dropdown changes
   document.getElementById('modelSelect').addEventListener('change', updateTokenWidget);
   // Run once on load after models are fetched
-  document.addEventListener('DOMContentLoaded', () => {
-    // --- Initialize Event Listeners ---
+  document.addEventListener('DOMContentLoaded', () => { // --- Global Event Listeners ---
     // Tab navigation
     document.querySelector('.tabs-nav').addEventListener('click', (e) => {
       const tabButton = e.target.closest('.tab-btn');
@@ -1269,64 +1276,299 @@
       if (header) { header.closest('.score-card').classList.toggle('open'); }
     });
 
+    // Help Popover Event Delegation
+    document.body.addEventListener('mouseover', e => {
+      const helpIcon = e.target.closest('.help-icon-wrap');
+      if (helpIcon && helpIcon.id) {
+        const baseId = helpIcon.id.replace('Icon', '');
+        showHelp(baseId);
+      }
+    });
+
+    document.body.addEventListener('mouseout', e => {
+      const helpIcon = e.target.closest('.help-icon-wrap');
+      if (helpIcon && helpIcon.id) {
+        const baseId = helpIcon.id.replace('Icon', '');
+        hideHelp(baseId);
+      }
+    });
+
+    document.body.addEventListener('click', e => {
+      const helpIcon = e.target.closest('.help-icon-wrap');
+      if (helpIcon && helpIcon.id) {
+        const baseId = helpIcon.id.replace('Icon', '');
+        toggleHelp(baseId);
+      }
+    });
+
     // Event Listener for Dashboard Company Select
     document.getElementById('dashboardCompanySelect').addEventListener('change', (e) => {
       renderCompanyDashboard(e.target.value);
     });
 
-        // Event Delegation for Help Icons
-        document.addEventListener('mouseover', (e) => {
-            const helpIconWrap = e.target.closest('.help-icon-wrap');
-            if (helpIconWrap && helpIconWrap.id && !helpIconWrap.classList.contains('pinned')) {
-                showHelp(helpIconWrap.id.replace('Icon', ''));
-            }
-        });
-        document.addEventListener('mouseout', (e) => {
-            const helpIconWrap = e.target.closest('.help-icon-wrap');
-            if (helpIconWrap && helpIconWrap.id && !helpIconWrap.classList.contains('pinned')) {
-                hideHelp(helpIconWrap.id.replace('Icon', ''));
-            }
-        });
-        document.addEventListener('click', (e) => {
-            const helpIconWrap = e.target.closest('.help-icon-wrap');
-            if (helpIconWrap && helpIconWrap.id) {
-                toggleHelp(helpIconWrap.id.replace('Icon', ''));
-                e.stopPropagation(); // Prevent document click listener from immediately closing it
-            }
-        });
+    // Admin Panel
+    document.getElementById('unlockAdminBtn').addEventListener('click', () => { isAdminAuthenticated ? lockAdminPanel() : unlockAdminPanel(); });
+    document.getElementById('saveApiKeysBtn').addEventListener('click', saveApiKeys);
+    document.getElementById('deleteAllComparisonsBtn').addEventListener('click', deleteAllComparisons);
 
-        // --- NEW EVENT LISTENERS FOR INLINE HANDLERS ---
-        // Settings Tab
-        document.getElementById('providerSelect').addEventListener('change', onProviderChange);
-        document.getElementById('presetSelect').addEventListener('change', (e) => loadPreset(e.target.value));
-        document.getElementById('savePresetBtn').addEventListener('click', saveCurrentAsPreset);
-        document.getElementById('deletePresetBtn').addEventListener('click', deletePreset);
+    // Settings Tab
+    document.getElementById('providerSelect').addEventListener('change', onProviderChange);
+    document.getElementById('presetSelect').addEventListener('change', (e) => loadPreset(e.target.value));
+    document.getElementById('savePresetBtn').addEventListener('click', saveCurrentAsPreset);
+    document.getElementById('deletePresetBtn').addEventListener('click', deletePreset);
 
-        // Research Tab
-        document.getElementById('countSelect').addEventListener('change', toggleCustomCount);
-        document.getElementById('advancedToggle').addEventListener('click', toggleAdvanced);
+    // Research Tab
+    document.getElementById('countSelect').addEventListener('change', toggleCustomCount);
+    document.getElementById('advancedToggle').addEventListener('click', toggleAdvanced);
 
-        // Verification Tab
-        document.getElementById('verifyBtn').addEventListener('click', doVerify);
+    // Verification Tab
+    document.getElementById('verifyBtn').addEventListener('click', doVerify);
 
-        // Compare Tab
-        document.getElementById('compareBtn').addEventListener('click', doCompare);
+    // Compare Tab
+    document.getElementById('compareBtn').addEventListener('click', doCompare);
 
-        // Dashboard Tab
-        document.getElementById('generateSummaryBtn').addEventListener('click', generateExecutiveSummary);
+    // Dashboard Tab
+    document.getElementById('generateSummaryBtn').addEventListener('click', generateExecutiveSummary);
 
     // Other initializations
     fetchModels();
     initColumns();
     renderCompareCategories();
     loadStoredComparisons();
+
+    // Move the API key management section into the admin panel.
+    // This ensures it's only visible when the admin panel itself is visible.
+    const apiKeySection = document.getElementById('apiKeyManagementSection');
+    const adminPanel = document.getElementById('adminPanel');
+    if (apiKeySection && adminPanel) { adminPanel.prepend(apiKeySection); }
+
+    checkAdminStatusAndRenderButton(); // Check admin status on load
     document.getElementById('customPrompt').value = "You are an expert market analyst. Find {count} direct competitors in the same industry as {query} targeting the same customer base.";
     setTimeout(updateTokenWidget, 1000);
   });
+  // These functions were previously called via inline handlers, but are global.
+  function toggleCustomCount() { document.getElementById('countSelect').value === 'custom' ? show('customCountInput') : hide('customCountInput'); }
+  function toggleAdvanced() { document.getElementById('advancedSection').classList.toggle('hidden'); }
 
-    // These functions were previously called via inline handlers, but are global.
-    function toggleCustomCount() { document.getElementById('countSelect').value === 'custom' ? show('customCountInput') : hide('customCountInput'); }
-    function toggleAdvanced() { document.getElementById('advancedSection').classList.toggle('hidden'); }
+  // ── Admin Panel Logic ────────────────────────────────────────────────────────
+  let isAdminAuthenticated = false;
+
+  async function unlockAdminPanel() {
+    const passwordInput = document.getElementById('adminPasswordInput');
+    const password = passwordInput.value;
+
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: password })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        isAdminAuthenticated = true;
+        show('adminPanel');
+        passwordInput.value = '';
+        passwordInput.placeholder = 'Admin Panel Unlocked';
+        passwordInput.disabled = true;
+        document.getElementById('unlockAdminBtn').textContent = 'Lock Admin Panel';
+        document.getElementById('unlockAdminBtn').classList.add('btn-delete');
+        document.getElementById('unlockAdminBtn').disabled = false;
+        renderAdminPanel();
+        showToast(data.message); // Replaced alert
+      } else {
+        showToast(data.error || 'Failed to unlock admin panel.', true); // Replaced alert
+      }
+    } catch (error) {
+      console.error('Admin login error:', error);
+      showToast('An error occurred during admin login.', true); // Replaced alert
+    }
+  }
+
+  async function lockAdminPanel() {
+    try {
+      const res = await fetch('/api/admin/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        isAdminAuthenticated = false;
+        hide('adminPanel');
+        document.getElementById('adminPasswordInput').value = '';
+        document.getElementById('adminPasswordInput').placeholder = 'Admin Password';
+        document.getElementById('adminPasswordInput').disabled = false;
+        document.getElementById('unlockAdminBtn').textContent = 'Unlock Admin Panel';
+        document.getElementById('unlockAdminBtn').classList.remove('btn-delete');
+        document.getElementById('unlockAdminBtn').disabled = false;
+        showToast(data.message); // Replaced alert
+      } else {
+        showToast(data.error || 'Failed to lock admin panel.', true); // Replaced alert
+      }
+    } catch (error) {
+      console.error('Admin logout error:', error);
+      showToast('An error occurred during admin logout.', true); // Replaced alert
+    }
+  }
+
+  async function renderAdminPanel() {
+    if (!isAdminAuthenticated) {
+      // If not admin, we just ensure the panel is hidden.
+      hide('adminPanel');
+      return;
+    }
+
+    // Fetch and display global API key status
+    try {
+      const keyRes = await fetch('/api/admin/api_keys');
+      if (keyRes.ok) {
+        const keyData = await keyRes.json();
+        const openAIInput = document.getElementById('userOpenAIKeyInput');
+        const anthropicInput = document.getElementById('userAnthropicKeyInput');
+
+        openAIInput.placeholder = keyData.openai_key_set ? 'A global OpenAI key is set' : 'Enter global OpenAI API Key';
+        openAIInput.style.width = '100%';
+        openAIInput.style.boxSizing = 'border-box';
+        openAIInput.style.marginBottom = '8px';
+
+        anthropicInput.placeholder = keyData.anthropic_key_set ? 'A global Anthropic key is set' : 'Enter global Anthropic API Key';
+        anthropicInput.style.width = '100%';
+        anthropicInput.style.boxSizing = 'border-box';
+      }
+    } catch (error) {
+      console.error('Failed to fetch global API key status:', error);
+    }
+
+    // Fetch and display comparisons
+    try { // This block should only run if authenticated
+      const res = await fetch('/api/admin/comparisons');
+      const comparisons = await res.json();
+      const tbody = document.querySelector('#adminComparisonsList tbody');
+      tbody.innerHTML = ''; // Clear existing
+
+      comparisons.forEach(comp => {
+        const tr = document.createElement('tr');
+        const date = new Date(comp.timestamp * 1000).toLocaleString();
+        tr.innerHTML = `
+                    <td>${comp.id}</td>
+                    <td>${comp.company_name}</td>
+                    <td>${comp.opponent_name}</td>
+                    <td>${comp.net_score}</td>
+                    <td>${date}</td>
+                    <td><button class="btn-icon" data-action="delete-comparison" data-id="${comp.id}">×</button></td>
+                `;
+        tbody.appendChild(tr);
+      });
+
+      tbody.addEventListener('click', async (e) => {
+        if (e.target.dataset.action === 'delete-comparison') {
+          const id = e.target.dataset.id;
+          if (confirm(`Are you sure you want to delete comparison ID ${id}?`)) {
+            await deleteComparison(id);
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Failed to fetch comparisons:', error);
+    }
+  }
+
+  async function saveApiKeys() {
+    const openaiKey = document.getElementById('userOpenAIKeyInput').value;
+    const anthropicKey = document.getElementById('userAnthropicKeyInput').value;
+
+    try {
+      const res = await fetch('/api/admin/api_keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ openai_key: openaiKey, anthropic_key: anthropicKey })
+      });
+      const data = await res.json();
+      alert(data.message);
+      renderAdminPanel(); // Refresh placeholders and list
+      document.getElementById('userOpenAIKeyInput').value = '';
+      document.getElementById('userAnthropicKeyInput').value = '';
+    } catch (error) { console.error('Failed to save API keys:', error); alert('Error saving API keys.'); }
+  }
+
+  async function deleteComparison(id) {
+    if (!isAdminAuthenticated) return;
+    try {
+      const res = await fetch('/api/admin/comparisons', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id })
+      });
+      const data = await res.json();
+      alert(data.message);
+      renderAdminPanel(); // Refresh list
+    } catch (error) { console.error('Failed to delete comparison:', error); alert('Error deleting comparison.'); }
+  }
+
+  async function deleteAllComparisons() {
+    if (!isAdminAuthenticated) return;
+    if (confirm('Are you absolutely sure you want to delete ALL comparison entries? This cannot be undone.')) {
+      try {
+        const res = await fetch('/api/admin/comparisons', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}) // Empty body to indicate delete all
+        });
+        const data = await res.json();
+        alert(data.message);
+        renderAdminPanel(); // Refresh list
+      } catch (error) { console.error('Failed to delete all comparisons:', error); alert('Error deleting all comparisons.'); }
+    }
+  }
+
+  // Function to check admin status and update button/panel visibility on tab switch/load
+  async function checkAdminStatusAndRenderButton() {
+    try {
+      const passwordInput = document.getElementById('adminPasswordInput');
+      passwordInput.style.width = '100%';
+      passwordInput.style.boxSizing = 'border-box';
+
+      const res = await fetch('/api/admin/comparisons'); // A protected endpoint to check auth
+      if (res.ok) {
+        isAdminAuthenticated = true;
+        show('adminPanel');
+        passwordInput.value = '';
+        passwordInput.placeholder = 'Admin Panel Unlocked';
+        passwordInput.disabled = true;
+        document.getElementById('unlockAdminBtn').textContent = 'Lock Admin Panel';
+        document.getElementById('unlockAdminBtn').classList.add('btn-delete');
+        document.getElementById('unlockAdminBtn').disabled = false; // Re-enable for locking
+        renderAdminPanel();
+      } else {
+        isAdminAuthenticated = false;
+        hide('adminPanel');
+        document.getElementById('unlockAdminBtn').textContent = 'Unlock Admin Panel';
+        document.getElementById('unlockAdminBtn').classList.remove('btn-delete');
+        document.getElementById('unlockAdminBtn').disabled = false;
+      }
+    } catch (error) {
+      console.error('Failed to check admin status:', error);
+    }
+  }
+
+  function showToast(message, isError = false) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${isError ? 'error' : ''}`;
+    toast.textContent = message;
+
+    container.appendChild(toast);
+
+    // Automatically remove the toast after 3 seconds
+    setTimeout(() => {
+      toast.classList.add('fade-out');
+      toast.addEventListener('animationend', () => toast.remove());
+    }, 3000);
+  }
 
   // --- Helper functions for safe DOM creation ---
   function createCell(text, isBold = false) {

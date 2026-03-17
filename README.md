@@ -5,6 +5,7 @@ Your erperience and results may vary greatly on the AI model used, I've personal
 
 ### Requirements
 Python3
+
 OpenAI or Anthropic api key
 
 ## Installation
@@ -27,11 +28,15 @@ git clone <https://github.com/p4rsl3y/Competitor-analysis-Tool-.git>
     chmod +x setup.sh
     ```
 
-2. Configure API Keys
-The setup script creates a .env file based on the template. Open it and add your credentials:
+2. Configure Environment
+The setup script creates a `.env` file from the `.env.example` template. This file is essential for security and application configuration.
 
-OpenAI API Key: Required for GPT models.
-Anthropic API Key: Required for Claude models.
+*   `ADMIN_PASSWORD`: Set a secure password to access the Admin Panel in the Settings tab.
+*   `ENCRYPTION_KEY`: This is used to secure the API keys in the database. If this key is missing or invalid when you first run the app, the application will **fail to start** and will **print a new, valid key to your console**. Copy this new key into your `.env` file to fix the issue.
+*   `FLASK_SECRET_KEY`: A secret key for securing user sessions. It's recommended to set this to a long, random string for better security, though the app will function without it.
+
+> **Note:** API keys for OpenAI and Anthropic are no longer set in this file. They are now managed globally within the application via the **Admin Panel** in the Settings tab.
+
 
 ### Activate the environment
 ```

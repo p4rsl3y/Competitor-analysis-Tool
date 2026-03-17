@@ -284,6 +284,59 @@
           </div>
         </div>
       </div>
+
+      <div class="settings-section" id="apiKeyManagementSection">
+        <div class="settings-row" style="flex-direction: column; gap: 10px;">
+          <span class="provider-label">Manage Your API Keys</span>
+          <p style="font-size: 13px; color: #666; margin-bottom: 8px;">Keys you provide here are securely encrypted and
+            will override the server's default keys for your session only.</p>
+          <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+            <input type="password" id="userOpenAIKeyInput" placeholder="Enter your OpenAI API Key" style="flex: 1;">
+            <input type="password" id="userAnthropicKeyInput" placeholder="Enter your Anthropic API Key"
+              style="flex: 1;">
+            <button class="btn-preset" id="saveApiKeysBtn" style="white-space: nowrap; align-self: flex-start;">Save My
+              API Keys</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-row" style="flex-direction: column; gap: 10px;">
+          <span class="provider-label">Admin Panel Access</span>
+          <p style="font-size: 13px; color: #666; margin-bottom: 8px;">Enter the admin password to unlock advanced
+            settings and database management. (Set in .env file)</p>
+          <div style="display: flex; gap: 10px; width: 100%;">
+            <input type="password" id="adminPasswordInput" placeholder="Admin Password" style="flex: 1;">
+            <button class="btn-preset" id="unlockAdminBtn" style="white-space: nowrap;">Unlock Admin Panel</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="adminPanel" class="hidden">
+        <div class="settings-section">
+          <div class="settings-row" style="flex-direction: column; gap: 10px;">
+            <span class="provider-label">Database Management</span>
+            <p style="font-size: 13px; color: #666; margin-bottom: 8px;">Manage comparison entries.</p>
+            <div id="adminComparisonsList" class="table-wrap" style="max-height: 300px; overflow-y: auto;">
+              <table style="width: 100%;">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Company A</th>
+                    <th>Company B</th>
+                    <th>Score</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <button class="btn-preset btn-delete" id="deleteAllComparisonsBtn" style="margin-top: 10px;">Delete All
+              Comparisons</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="loading" class="loading hidden">
@@ -305,6 +358,8 @@
       <div class="activity-log" id="activityLog"></div>
     </div>
     <div id="errorBox" class="error hidden"></div>
+
+    <div id="toastContainer" class="toast-container"></div>
 
   </div>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
